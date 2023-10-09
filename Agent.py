@@ -81,8 +81,8 @@ class CriticNetwork(nn.Module):
         super(CriticNetwork, self).__init__()
 
         self.file_name = f"{name}.sync"  # os.path.join(chkpt_dir, name)
-        self.chkpt_file = f'/content/drive/MyDrive/{self.file_name}'
-        self.load_file = f'/content/drive/MyDrive/{load_file}.sync'
+        self.chkpt_file = f'/home/student/agent_files/{self.file_name}'
+        self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
         # self.fc2 = nn.Linear(fc1_dims, fc2_dims)
@@ -113,8 +113,8 @@ class ActorNetwork(nn.Module):
         super(ActorNetwork, self).__init__()
 
         self.chkpt_file = f"{name}.sync"  # os.path.join(chkpt_dir, name)
-        self.chkpt_file = f'/content/drive/MyDrive/{self.chkpt_file}'
-        self.load_file = f'/content/drive/MyDrive/{load_file}.sync'
+        self.chkpt_file = f'/home/student/agent_files/{self.chkpt_file}'
+        self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
         # self.fc2 = nn.Linear(fc1_dims, fc2_dims)

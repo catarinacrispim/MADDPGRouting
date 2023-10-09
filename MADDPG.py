@@ -5,11 +5,15 @@ import numpy as np
 from torch import tensor, cat, no_grad, mean
 import torch.nn.functional as F
 
+import os
+import datetime
+import matplotlib.pyplot as plt
+
 from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN
 
 
 class MADDPG:
@@ -132,7 +136,13 @@ if __name__ == '__main__':
 
     agent_dim = STATE_SIZE
 
-    critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS
+    if CRITIC_DOMAIN == "central_critic":
+        critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS
+        critic = eng.get_link_usage()
+    elif CRITIC_DOMAIN == "local_critic":
+        critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
+        critic = eng.get_state()
+
     critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
@@ -142,19 +152,45 @@ if __name__ == '__main__':
 
     memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims,
                                     n_action, NUMBER_OF_AGENTS, batch_size=100)
+    
 
-    evaluate = False
+    ## SETUP ##
+    #create /home/student/agent_files directory if not found
+    path = '/home/student/agent_files'
+    if not os.path.exists(path):
+        print("Creating 'agent_files' directory")
+        os.mkdir(path)
+    #create /home/student/results directory if not found
+    path = '/home/student/results'
+    if not os.path.exists(path):
+        print("Creating 'results' directory")
+        os.mkdir(path)
+    #create folder for current simulation
+    day = datetime.date.today().day
+    month = datetime.date.today().month
+    hh = datetime.datetime.now().hour
+    mm = datetime.datetime.now().minute
+    if EVALUATE:
+        learning = "test"
+    else:
+        learning = "train"
+    path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}'
+    os.mkdir(path)
+
+    graph_y_axis = np.zeros(NR_EPOCHS)
+    graph_x_axis = np.zeros(NR_EPOCHS)
+
+    evaluate = EVALUATE
 
     if evaluate:
         maddpg_agents.load_checkpoint()
 
     all_rewards = []
 
-    evaluate = False
-    print(all_hosts[10])
+    #print(all_hosts[10])
     nr_trains = 1
 
-    nr_epochs = 10000 if not evaluate else 1
+    nr_epochs = NR_EPOCHS if not evaluate else 1
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = 0
@@ -206,7 +242,7 @@ if __name__ == '__main__':
                         base_state = all_dst_states
 
                     states.append(state)
-                    critic_states.append(np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0))
+                    critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
                 actions = maddpg_agents.choose_action(states)
 
@@ -230,7 +266,7 @@ if __name__ == '__main__':
 
                 new_next_states = np.empty((25, agent_dim), dtype=np.double)
 
-                all_critic_new_states = [np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0) for i in
+                all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
 
                 new_next_states = []
@@ -259,9 +295,11 @@ if __name__ == '__main__':
                 total_package_loss += eng.statistics['package_loss']
                 if done:
                     break
-
+            
+            print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
             print("Total reward", total_reward)
             print("Total package loss", total_package_loss)
+            print(" ")
 
             if e % 3 == 0 and not evaluate:
                 maddpg_agents.learn(memory)
@@ -274,10 +312,11 @@ if __name__ == '__main__':
             all_rewards.append(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
+            ## episode ends
 
         print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
-
+        graph_y_axis[epoch] = total_epoch_reward
 
         if epoch % 30 == 0:
             print(f"AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
@@ -288,3 +327,20 @@ if __name__ == '__main__':
                 print("SAVING")
 
         print(total_epoch_pck_loss)
+        ## epoch ends
+
+    ## Build graph
+    if not evaluate:
+        graph_x_axis = np.arange(0, NR_EPOCHS)
+        if CRITIC_DOMAIN == "central_critic":
+            plt.title(f"Total reward per epoch - central critic")
+        elif CRITIC_DOMAIN == "local_critic":
+            plt.title(f"Total reward per epoch - local critic")
+        plt.xlabel("Epochs")
+        plt.ylabel("Reward")
+        plt.plot(graph_x_axis, graph_y_axis)
+        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        plt.show()
+    elif evaluate:
+        pass
+    

@@ -134,7 +134,7 @@ class NetworkEngine:
 
         if new_tm:
             self.current_tm_index += 1
-            self.communication_sequences = self.all_tms[self.current_tm_index % EPOCH_SIZE]
+            self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
 
         # print("new ", self.communication_sequences)
         self.create_components(self.graph_topology)
