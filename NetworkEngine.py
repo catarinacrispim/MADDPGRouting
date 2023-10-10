@@ -400,6 +400,7 @@ class NetworkEngine:
         return all([component.is_done() for name, component in self.components.items() if "H" in name])
     
     def set_different_topology(self, mod):
+
         if mod == "1":
             self.bws = {'H1': 3, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
                     'H11': 24, 'H12': 3, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,

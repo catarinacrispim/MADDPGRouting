@@ -110,7 +110,6 @@ if __name__ == '__main__':
     col = 1
     UPDATE_STEPS = 16
     eng = NetworkEngine()
-
     env = NetworkEnv(eng)
 
     n_state = 845
@@ -118,8 +117,6 @@ if __name__ == '__main__':
 
     # onlineQNetwork = QNetwork()
     total_rewards = []
-    total_rewards_og = []
-    total_rewards_new = []
 
     agents = eng.get_all_hosts()
 
@@ -253,6 +250,10 @@ if __name__ == '__main__':
                         base_state = all_dst_states
 
                     states.append(state)
+                    if CRITIC_DOMAIN == "central_critic":
+                        critic = eng.get_link_usage()
+                    elif CRITIC_DOMAIN == "local_critic":
+                        critic = state
                     critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
                 actions = maddpg_agents.choose_action(states)
