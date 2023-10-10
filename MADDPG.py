@@ -344,7 +344,7 @@ if __name__ == '__main__':
         if evaluate:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
-            percentage[epoch] = round(packet_loss_evaluate/packet_sent_evaluate, 4)
+            percentage[epoch] = round(total_epoch_pck_loss/total_epoch_pck_sent, 4)
         ### epoch ends
 
     ##Data text file

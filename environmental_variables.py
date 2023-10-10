@@ -15,7 +15,7 @@ CRITIC_DOMAIN = "central_critic" #global: eng.get_link_usage()
 #CRITIC_DOMAIN = "local_critic"   #local: state
 
 
-EVALUATE = False
+EVALUATE = True
 
 ### Modified Network In Evaluate  ###
 #MODIFIED_NETWORK = 1
