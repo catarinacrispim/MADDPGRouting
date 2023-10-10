@@ -9,8 +9,15 @@ NUMBER_OF_AGENTS = 25
 NR_EPOCHS = 10      #epoch
 EPOCH_SIZE = 25  #episode
 
-EVALUATE = False
 
-#Critic Domain
+### Critic Domain ###
 CRITIC_DOMAIN = "central_critic" #global: eng.get_link_usage()
 #CRITIC_DOMAIN = "local_critic"   #local: state
+
+
+EVALUATE = False
+
+### Modified Network In Evaluate  ###
+#MODIFIED_NETWORK = 1
+#MODIFIED_NETWORK = 2
+#MODIFIED_NETWORK = 3

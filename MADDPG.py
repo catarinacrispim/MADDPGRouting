@@ -141,7 +141,7 @@ if __name__ == '__main__':
         critic = eng.get_link_usage()
     elif CRITIC_DOMAIN == "local_critic":
         critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
-        critic = eng.get_state()
+        critic = state
 
     critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
 
@@ -186,16 +186,25 @@ if __name__ == '__main__':
         maddpg_agents.load_checkpoint()
 
     all_rewards = []
+    packet_loss_evaluate = []
+    packet_sent_evaluate = []
+    percentage = []
+    experience_pck_lost = 0
+    experience_pck_sent = 0
 
     #print(all_hosts[10])
     nr_trains = 1
 
-    nr_epochs = NR_EPOCHS if not evaluate else 1
+    nr_epochs = NR_EPOCHS if not evaluate else 4
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = 0
         total_epoch_pck_loss = 0
+        total_epoch_pck_sent = 0
         print("Epoch: ", epoch)
+
+        if evaluate and epoch != "0":
+            eng.set_different_topology(epoch)
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
         for e in range(episode_size):
@@ -207,6 +216,7 @@ if __name__ == '__main__':
 
             total_reward = 0
             total_package_loss = 0
+            total_packets_sent = 0
             for time_steps in range(100):
                 actions = {}
 
@@ -258,7 +268,7 @@ if __name__ == '__main__':
                             action = actions[index]
 
                         if host in eng.single_con_hosts:
-                            action = 0
+                            action = 0                        #algoritmo tradicional
 
                         actions_dict[host] = {next_dsts.get(host, ''): action}
 
@@ -293,6 +303,7 @@ if __name__ == '__main__':
 
                 total_reward += sum(rewards) / 25
                 total_package_loss += eng.statistics['package_loss']
+                total_packets_sent += eng.statistics['package_sent']
                 if done:
                     break
             
@@ -306,13 +317,16 @@ if __name__ == '__main__':
 
             total_epoch_reward += total_reward
             total_epoch_pck_loss += eng.statistics['package_loss']
+            total_epoch_pck_sent += eng.statistics['package_sent']
+            experience_pck_lost = total_epoch_pck_loss
+            experience_pck_sent = total_epoch_pck_sent
             # print(f"STATISTICS OG {eng.statistics}")
 
             total_rewards.append(total_reward)
             all_rewards.append(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
-            ## episode ends
+            ### episode ends
 
         print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
@@ -327,7 +341,23 @@ if __name__ == '__main__':
                 print("SAVING")
 
         print(total_epoch_pck_loss)
-        ## epoch ends
+        if evaluate:
+            #packet_loss_evaluate[epoch] = total_epoch_pck_loss
+            #packet_sent_evaluate[epoch] = total_epoch_pck_sent
+            percentage[epoch] = round(packet_loss_evaluate/packet_sent_evaluate, 4)
+        ### epoch ends
+
+    ##Data text file
+    data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    if evaluate:
+        data_file.write("Packets lost when evaluate \n")
+        data_file.write(f"Original network: {percentage[0]}% \n")
+        data_file.write(f"Modified network (1): {percentage[1]}% \n")
+        data_file.write(f"Modified network (2): {percentage[2]}% \n")
+        data_file.write(f"Modified network (3): {percentage[3]}% \n")
+    elif not evaluate:
+        data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent, 4)}% \n")
+    data_file.close    
 
     ## Build graph
     if not evaluate:

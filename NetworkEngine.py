@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from Link import Link
 from NetworkComponent import NetworkComponent
-from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS
+from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE
 
 
 class NetworkEngine:
@@ -70,12 +70,12 @@ class NetworkEngine:
                                  len(self.graph_topology.edges(host)) == 1]
 
         self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
-        print(self.bws)
-        print(self.single_con_hosts)
+        #print(self.bws)
+        #print(self.single_con_hosts)
 
         self.all_tms = json.load(open("all_tms_test.json", mode="r"))
         self.current_index = 0
-        self.current_tm_index = self.current_index % EPOCH_SIZE
+        self.current_tm_index = self.current_index % len(self.all_tms)          #EPOCH_SIZE
         self.communication_sequences = self.all_tms[self.current_tm_index]
 
         """
@@ -84,7 +84,7 @@ class NetworkEngine:
         self.get_state("H1", 2)
         """
 
-        print("YES")
+        #print("YES")
 
     def create_components(self, graph: nx.Graph):
         for node in graph.nodes:
@@ -398,6 +398,33 @@ class NetworkEngine:
 
     def communication_done(self):
         return all([component.is_done() for name, component in self.components.items() if "H" in name])
+    
+    def set_different_topology(self, mod):
+        if mod == "1":
+            self.bws = {'H1': 3, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': 24, 'H12': 3, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
+                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 3, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
+                    'H29': 21, 'H30': 24, 'H31': 32, 'H32': 50, 'H33': 31, 'H34': 3, 'H35': 49, 'H36': 31, 'H37': 34,
+                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 3, 'H46': 43,
+                    'H47': 41, 'H48': 24, 'H49': 30, 'H50': 33}
+        elif mod == "2":
+            self.bws = {'H1': 29, 'H2': 28, 'H3': 3, 'H4': 28, 'H5': 33, 'H6': 3, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': 3, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
+                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
+                    'H29': 21, 'H30': 24, 'H31': 3, 'H32': 50, 'H33': 31, 'H34': 32, 'H35': 49, 'H36': 31, 'H37': 34,
+                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 34, 'H46': 43,
+                    'H47': 3, 'H48': 24, 'H49': 30, 'H50': 3}
+        elif mod == "3":
+            self.bws = {'H1': 29, 'H2': 28, 'H3': 22, 'H4': 3, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': 24, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 3, 'H17': 48, 'H18': 49, 'H19': 3,
+                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
+                    'H29': 3, 'H30': 24, 'H31': 32, 'H32': 3, 'H33': 31, 'H34': 32, 'H35': 3, 'H36': 31, 'H37': 34,
+                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 3, 'H45': 34, 'H46': 43,
+                    'H47': 41, 'H48': 3, 'H49': 30, 'H50': 33}
+        
+        self.calculate_paths()
+
+
 
 def generate_traffic_sequence(network=None):
     if not network:
