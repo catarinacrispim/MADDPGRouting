@@ -188,7 +188,7 @@ if __name__ == '__main__':
     all_rewards = []
     packet_loss_evaluate = []
     packet_sent_evaluate = []
-    percentage = []
+    
     experience_pck_lost = 0
     experience_pck_sent = 0
 
@@ -196,6 +196,7 @@ if __name__ == '__main__':
     nr_trains = 1
 
     nr_epochs = NR_EPOCHS if not evaluate else 4
+    percentage = np.zeros(nr_epochs)
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = 0
