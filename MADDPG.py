@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     nr_epochs = NR_EPOCHS if not evaluate else 4
     percentage = np.zeros(nr_epochs)
-    available_bw = np.zeros(nr_epochs)
+    available_bw_epoch = np.zeros(nr_epochs)
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = 0
@@ -208,7 +208,6 @@ if __name__ == '__main__':
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
         available_bw_episode = np.zeros(episode_size)
         for e in range(episode_size):
-
             new_tm = e % 2 == 0
             env.reset(new_tm)
 
@@ -217,6 +216,7 @@ if __name__ == '__main__':
             total_reward = 0
             total_package_loss = 0
             total_packets_sent = 0
+            available_bw_time_steps = np.zeros(100)
             for time_steps in range(100):
                 actions = {}
                 prev_states = {}
@@ -279,7 +279,6 @@ if __name__ == '__main__':
                 if CRITIC_DOMAIN == "central_critic":
                     critic = eng.get_link_usage()
                     #print("\n2 link usage: ", critic)
-                    available_bw_episode[e] = np.average(eng.get_link_usage())
                 elif CRITIC_DOMAIN == "local_critic":
                     critic = state
                 all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
@@ -307,11 +306,16 @@ if __name__ == '__main__':
 
                 learn_steps = 0
 
+                available_bw_time_steps[time_steps] = np.average(eng.get_link_usage())
+
                 total_reward += sum(rewards) / 25
                 total_package_loss += eng.statistics['package_loss']
                 total_packets_sent += eng.statistics['package_sent']
                 if done:
                     break
+            
+
+            available_bw_episode[e] = np.average(available_bw_time_steps)
             
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
             print("Total reward", total_reward)
@@ -350,8 +354,8 @@ if __name__ == '__main__':
         if evaluate:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
-            percentage[epoch] = round((total_epoch_pck_loss/total_epoch_pck_sent)*100, 2)
-            available_bw[epoch] = np.average(available_bw_episode)
+            percentage[epoch] = round(((total_epoch_pck_loss/total_epoch_pck_sent)*100), 2)
+            available_bw_epoch[epoch] = round(np.average(available_bw_episode),2)
         ### epoch ends
 
     ##Data text file
@@ -359,13 +363,13 @@ if __name__ == '__main__':
     if evaluate:
         data_file.write("Packets lost when evaluate \n")
         data_file.write(f"Original network: {percentage[0]}% \n")
-        data_file.write(f"Available bandwidth: {available_bw[0]}% \n\n")
+        data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
         data_file.write(f"Modified network (1): {percentage[1]}% \n")
-        data_file.write(f"Available bandwidth (1): {available_bw[1]}% \n\n")
+        data_file.write(f"Available bandwidth (1): {available_bw_epoch[1]}% \n\n")
         data_file.write(f"Modified network (2): {percentage[2]}% \n")
-        data_file.write(f"Available bandwidth (2): {available_bw[2]}% \n\n")
+        data_file.write(f"Available bandwidth (2): {available_bw_epoch[2]}% \n\n")
         data_file.write(f"Modified network (3): {percentage[3]}% \n")
-        data_file.write(f"Available bandwidth (3): {available_bw[3]}% \n\n")
+        data_file.write(f"Available bandwidth (3): {available_bw_epoch[3]}% \n\n")
     elif not evaluate:
         data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 4)}% \n")
     data_file.close    
