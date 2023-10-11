@@ -12,8 +12,9 @@ class Agent:
         self.tau = tau
         self.n_actions = n_actions
         #self.agent_name = 'agent_joint_training_improved_strategy%s' % agent_idx
-        self.agent_name = 'agent_joint_training_gcritic_updated_fixed_tm_15_02_%s' % agent_idx
-        self.load_name = self.agent_name#'agent_joint_training_updated_vary_tm_fix_16_11_8.0%s' % agent_idx
+        #self.agent_name = 'agent_joint_training_gcritic_updated_fixed_tm_15_02_%s' % agent_idx
+        self.agent_name = 'agent_%s' %agent_idx
+        self.load_name = self.agent_name #'agent_joint_training_updated_vary_tm_fix_16_11_8.0%s' % agent_idx
         self.actor = ActorNetwork(alpha, actor_dims, fa1, fa2, n_actions, 
                                   chkpt_dir=chkpt_dir,  name=self.agent_name+'_actor', load_file=self.load_name+'_actor')
         self.critic = CriticNetwork(beta, critic_dims, 
@@ -85,7 +86,8 @@ class CriticNetwork(nn.Module):
         self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
-        # self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims).float()
+        self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
         self.q = nn.Linear(fc1_dims, 1)
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
@@ -95,7 +97,7 @@ class CriticNetwork(nn.Module):
 
     def forward(self, state, action):
         x = F.relu(self.fc1(T.cat([state, action], dim=1)))
-        # x = F.relu(self.fc2(x))
+        #x = F.relu(self.fc2(x)) ##
         q = self.q(x)
 
         return q
@@ -117,7 +119,7 @@ class ActorNetwork(nn.Module):
         self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
-        # self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+        #self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
         self.pi = nn.Linear(fc1_dims, n_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
@@ -127,7 +129,7 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         x = F.relu(self.fc1(state))
-        # x = F.relu(self.fc2(x))
+        #x = F.relu(self.fc2(x)) ##
         pi = T.softmax(self.pi(x), dim=1)
 
         return pi

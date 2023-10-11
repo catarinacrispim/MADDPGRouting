@@ -6,7 +6,7 @@ NUMBER_OF_HOSTS = 13
 NUMBER_OF_PATHS = 5
 NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 8      #epoch
+NR_EPOCHS = 7      #epoch
 EPOCH_SIZE = 25  #episode
 
 
@@ -15,7 +15,7 @@ CRITIC_DOMAIN = "central_critic" #global: eng.get_link_usage()
 #CRITIC_DOMAIN = "local_critic"   #local: state
 
 
-EVALUATE = False
+EVALUATE = True
 
 ### Modified Network In Evaluate  ###
 #MODIFIED_NETWORK = 1
