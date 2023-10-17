@@ -182,7 +182,7 @@ class NetworkEngine:
                 graph_dst = int(dst[1:]) - 1
                 self.paths[(src, dst)] = self.k_shortest_paths(self.graph_topology, graph_src, graph_dst, 5)
                 self.components[src].set_active_path(dst, 0)
-        print(self.paths)
+        #print(self.paths)
         """   
         for src_host_id in range(1, NUMBER_OF_HOSTS + 1):
             src = "H{}".format(src_host_id)
@@ -255,7 +255,7 @@ class NetworkEngine:
         origin = path[0]
         destiny = path[-1]
         initial_bw = bw
-        update_bw = bw < 0
+        update_bw = bw < 0    #if bw < 0 True
 
         for index in range(len(path) - 1):
             src: NetworkComponent
@@ -292,6 +292,9 @@ class NetworkEngine:
         if not update_bw:
             self.statistics["package_sent"] += bw
             c = self.components[origin]
+            #if initial_bw == 0: ##
+            #    c.bw_pct = 0
+            #else:
             c.bw_pct = (bw / initial_bw)
         else:
             c = self.components[origin]
@@ -402,29 +405,39 @@ class NetworkEngine:
     def set_different_topology(self, mod):
 
         if mod == "1":
-            self.bws = {'H1': 3, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': 24, 'H12': 3, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
-                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 3, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': 21, 'H30': 24, 'H31': 32, 'H32': 50, 'H33': 31, 'H34': 3, 'H35': 49, 'H36': 31, 'H37': 34,
-                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 3, 'H46': 43,
+            self.bws = {'H1': -10, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': 24, 'H12': -10, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
+                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': -10, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
+                    'H29': 21, 'H30': 24, 'H31': 32, 'H32': 50, 'H33': 31, 'H34': -10, 'H35': 49, 'H36': 31, 'H37': 34,
+                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': -10, 'H46': 43,
                     'H47': 41, 'H48': 24, 'H49': 30, 'H50': 33}
         elif mod == "2":
-            self.bws = {'H1': 29, 'H2': 28, 'H3': 3, 'H4': 28, 'H5': 33, 'H6': 3, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': 3, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
+            self.bws = {'H1': 29, 'H2': 28, 'H3': -10, 'H4': 28, 'H5': 33, 'H6': -10, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': -10, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
                     'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': 21, 'H30': 24, 'H31': 3, 'H32': 50, 'H33': 31, 'H34': 32, 'H35': 49, 'H36': 31, 'H37': 34,
+                    'H29': 21, 'H30': 24, 'H31': -10, 'H32': 50, 'H33': 31, 'H34': 32, 'H35': 49, 'H36': 31, 'H37': 34,
                     'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 34, 'H46': 43,
-                    'H47': 3, 'H48': 24, 'H49': 30, 'H50': 3}
+                    'H47': -10, 'H48': 24, 'H49': 30, 'H50': -10}
         elif mod == "3":
-            self.bws = {'H1': 29, 'H2': 28, 'H3': 22, 'H4': 3, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': 24, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 3, 'H17': 48, 'H18': 49, 'H19': 3,
+            self.bws = {'H1': 29, 'H2': 28, 'H3': 22, 'H4': -10, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
+                    'H11': 24, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': -10, 'H17': 48, 'H18': 49, 'H19': -10,
                     'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': 3, 'H30': 24, 'H31': 32, 'H32': 3, 'H33': 31, 'H34': 32, 'H35': 3, 'H36': 31, 'H37': 34,
-                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 3, 'H45': 34, 'H46': 43,
-                    'H47': 41, 'H48': 3, 'H49': 30, 'H50': 33}
+                    'H29': -10, 'H30': 24, 'H31': 32, 'H32': -10, 'H33': 31, 'H34': 32, 'H35': -10, 'H36': 31, 'H37': 34,
+                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': -10, 'H45': 34, 'H46': 43,
+                    'H47': 41, 'H48': -10, 'H49': 30, 'H50': 33}
         
+        #self.create_components(self.graph_topology)
         self.calculate_paths()
-
+        self.hosts = self.get_all_hosts()
+        self.number_of_hosts = len(self.hosts)
+        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
+                                 len(self.graph_topology.edges(host)) == 1]
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
 
 
 def generate_traffic_sequence(network=None):

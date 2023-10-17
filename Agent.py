@@ -2,6 +2,7 @@ import torch as T
 from torch import nn, tensor, rand, optim, device, cat, save, load, softmax
 import torch.nn.functional as F
 
+from environmental_variables import NEURAL_NETWORK
 
 
 class Agent:
@@ -86,9 +87,16 @@ class CriticNetwork(nn.Module):
         self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
-        #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims).float()
-        self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
-        self.q = nn.Linear(fc1_dims, 1)
+        #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims)
+        ##self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
+        #self.q = nn.Linear(fc1_dims, 1)
+
+        if NEURAL_NETWORK == "duelling_q_network":
+            #self.fc2 = nn.Linear(fc1_dims, fc2_dims)
+            self.q = nn.Linear(fc1_dims, 1)
+            self.q_values = nn.Linear(fc1_dims, n_actions)
+        elif NEURAL_NETWORK == "simple_q_network":
+            self.q = nn.Linear(fc1_dims, 1)                           #1 dimention output
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -96,9 +104,25 @@ class CriticNetwork(nn.Module):
         self.to(self.device)
 
     def forward(self, state, action):
-        x = F.relu(self.fc1(T.cat([state, action], dim=1)))
+        #x = F.relu(self.fc1(T.cat([state, action], dim=1)))
         #x = F.relu(self.fc2(x)) ##
-        q = self.q(x)
+        #q = self.q(x)
+
+        if NEURAL_NETWORK == "duelling_q_network":
+            x = F.relu(self.fc1(T.cat([state, action], dim=1)))
+            #x = F.relu(self.fc2(x))
+            value = self.q(x)
+
+            q_values = T.softmax(self.q_values(x), dim=1)
+            #q_values = self.q_values(q_values)
+
+            average = T.mean(q_values, dim = 1, keepdim=True)
+
+            q = value + (q_values - average)         #q = value + (q_value - average q values)
+        
+        elif NEURAL_NETWORK == "simple_q_network":
+            x = F.relu(self.fc1(T.cat([state, action], dim=1)))
+            q = self.q(x)
 
         return q
 
@@ -128,9 +152,9 @@ class ActorNetwork(nn.Module):
         self.to(self.device)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc1(state))            #activation function
         #x = F.relu(self.fc2(x)) ##
-        pi = T.softmax(self.pi(x), dim=1)
+        pi = T.softmax(self.pi(x), dim=1)      #hidden layer -> output
 
         return pi
 

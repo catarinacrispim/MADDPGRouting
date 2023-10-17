@@ -13,7 +13,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK
 
 
 class MADDPG:
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         #critic = eng.get_link_usage()
     elif CRITIC_DOMAIN == "local_critic":
         critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
-        #critic = state
+        #critic = states
 
     critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         learning = "test"
     else:
         learning = "train"
-    path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}'
+    path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}'
     os.mkdir(path)
 
     graph_y_axis = np.zeros(NR_EPOCHS)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
         total_epoch_pck_sent = 0
         #print("Epoch: ", epoch)
 
-        if evaluate and epoch != "0":
+        if evaluate and epoch != 0:
             eng.set_different_topology(epoch)
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                         critic = eng.get_link_usage()
                         #print("\n1 link usage: ", critic)
                     elif CRITIC_DOMAIN == "local_critic":
-                        critic = state
+                        critic = states
                     critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
                 actions = maddpg_agents.choose_action(states)
@@ -280,7 +280,7 @@ if __name__ == '__main__':
                     critic = eng.get_link_usage()
                     #print("\n2 link usage: ", critic)
                 elif CRITIC_DOMAIN == "local_critic":
-                    critic = state
+                    critic = states
                 all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
 
@@ -359,7 +359,7 @@ if __name__ == '__main__':
         ### epoch ends
 
     ##Data text file
-    data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
     if evaluate:
         data_file.write("Packets lost when evaluate \n")
         data_file.write(f"Original network: {percentage[0]}% \n")
@@ -383,8 +383,9 @@ if __name__ == '__main__':
             plt.title(f"Total reward per epoch - local critic")
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
-        plt.plot(graph_x_axis, graph_y_axis)
-        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
+        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        plt.legend()
         plt.show()
     elif evaluate:
         pass

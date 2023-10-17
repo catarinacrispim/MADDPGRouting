@@ -6,15 +6,20 @@ NUMBER_OF_HOSTS = 13
 NUMBER_OF_PATHS = 5
 NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 7      #epoch
-EPOCH_SIZE = 25  #episode
+NR_EPOCHS = 50      #epoch
+EPOCH_SIZE = 135    #episode
 
 
 ### Critic Domain ###
 CRITIC_DOMAIN = "central_critic" #global: eng.get_link_usage()
-#CRITIC_DOMAIN = "local_critic"   #local: state
+#CRITIC_DOMAIN = "local_critic"   #local: states
 
 
+### Neural Network ###
+#NEURAL_NETWORK = "duelling_q_network"
+NEURAL_NETWORK = "simple_q_network"
+
+#EVALUATE = False
 EVALUATE = True
 
 ### Modified Network In Evaluate  ###
