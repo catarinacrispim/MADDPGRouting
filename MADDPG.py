@@ -13,7 +13,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK
 
 
 class MADDPG:
@@ -77,9 +77,24 @@ class MADDPG:
         for idx, agent in enumerate(self.agents):
             with T.no_grad():
                 future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
+                                                                                   idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
+
+                expected_value = reward_obtained[:, idx] + (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
+                """if NEURAL_NETWORK == "duelling_q_network":
+                    future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
+                                                                                     idx * self.n_actions:idx * self.n_actions + self.n_actions])
+                    print("\n\n\n reward obtained: ", reward_obtained[:, idx])
+                    print(np.shape(reward_obtained[:, idx]))
+                    print("\n future critic value: ",future_critic_value)
+                    print(np.shape(future_critic_value))
+                    print("\n future critic value agent: ",future_critic_value[:,idx])
+                    print(np.shape(future_critic_value[:,idx]))
+                    expected_value = reward_obtained[:, idx] +                                                                     (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value[:,idx]
+                elif NEURAL_NETWORK == "simple_q_network":
+                    future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
                                                                                      idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
-                expected_value = reward_obtained[:, idx] + (
-                            1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
+                    expected_value = reward_obtained[:, idx] + (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
+                """
 
             present_critic_value = agent.critic.forward(current_state[idx], combined_old_actions[:,
                                                                             idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
@@ -113,7 +128,7 @@ if __name__ == '__main__':
     env = NetworkEnv(eng)
 
     n_state = 845
-    n_action = 3
+    n_action = 5 ##3
 
     # onlineQNetwork = QNetwork()
     total_rewards = []
@@ -138,7 +153,7 @@ if __name__ == '__main__':
         #critic = eng.get_link_usage()
     elif CRITIC_DOMAIN == "local_critic":
         critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
-        #critic = states
+        #critic = state
 
     critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
 
@@ -192,7 +207,14 @@ if __name__ == '__main__':
     #print(all_hosts[10])
     nr_trains = 1
 
-    nr_epochs = NR_EPOCHS if not evaluate else 4
+    #nr_epochs = NR_EPOCHS if not evaluate else 4
+    if not evaluate:
+        nr_epochs = NR_EPOCHS
+    elif evaluate and MODIFIED_NETWORK == "bw":
+        nr_epochs = 4
+    elif evaluate and MODIFIED_NETWORK == "edges":
+        nr_epochs = 2
+
     percentage = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
 
@@ -202,8 +224,11 @@ if __name__ == '__main__':
         total_epoch_pck_sent = 0
         #print("Epoch: ", epoch)
 
-        if evaluate and epoch != 0:
-            eng.set_different_topology(epoch)
+        if MODIFIED_NETWORK == "bw" and evaluate and epoch != 0:
+            eng.set_different_topology_bw(epoch)
+
+        elif MODIFIED_NETWORK == "edges" and evaluate and epoch != 0:
+            eng.set_different_topology_edges()
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
         available_bw_episode = np.zeros(episode_size)
@@ -246,15 +271,36 @@ if __name__ == '__main__':
                         state = all_dst_states
                         base_state = all_dst_states
 
+                    #print("\n state: ", state)
                     states.append(state)
+                    #print("\n states: ", states)
+
                     if CRITIC_DOMAIN == "central_critic":
                         critic = eng.get_link_usage()
                         #print("\n1 link usage: ", critic)
                     elif CRITIC_DOMAIN == "local_critic":
-                        critic = states
+                        critic = state.reshape(33)
+                
+                    """print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+                    print("\n shape states ", np.shape(states))
+                    print(states)
+                    print("\n shape state after changes ", np.shape(states))
+                    print(np.array(states)[0])
+                    print("\n shape state ", np.shape(state))
+                    print(state)
+                    print("\n shape all dsts ", np.shape(np.array(all_dsts)))
+                    print(np.array(all_dsts))
+                    print("\n shape get link usage ", np.shape(eng.get_link_usage))"""
+
+                    #print("\n\n", state)
+                    #print("\n shape state ", np.shape(state))
+                    #print(state.reshape(33))
+
+
                     critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
                 actions = maddpg_agents.choose_action(states)
+                #print("\n actions: ", actions)
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
@@ -272,7 +318,10 @@ if __name__ == '__main__':
 
                         actions_dict[host] = {next_dsts.get(host, ''): action}
 
+                #print("\n actions dict: ", actions_dict)
                 next_states, rewards, done, _ = env.step(actions_dict)
+
+                #print("\nstep: ", next_states, rewards, done, _)
 
                 new_next_states = np.empty((25, agent_dim), dtype=np.double)
 
@@ -280,10 +329,14 @@ if __name__ == '__main__':
                     critic = eng.get_link_usage()
                     #print("\n2 link usage: ", critic)
                 elif CRITIC_DOMAIN == "local_critic":
-                    critic = states
+                    critic = state.reshape(33)
+
+                #print("\n eng_get link usage:", eng.get_link_usage())    
+                #print("\n state:", state)
                 all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
 
+                #print("\n all critic new states: ", all_critic_new_states)
                 new_next_states = []
                 for index, host in enumerate(all_hosts):
                     # means it add an action
@@ -361,17 +414,21 @@ if __name__ == '__main__':
     ##Data text file
     data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
     if evaluate:
-        data_file.write("Packets lost when evaluate \n")
-        data_file.write(f"Original network: {percentage[0]}% \n")
+        data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
+        data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
-        data_file.write(f"Modified network (1): {percentage[1]}% \n")
+        for index in range(1, nr_epochs):
+            data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
+            data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
+
+        """data_file.write(f"Packets lost Modified network (1): {percentage[1]}% \n")
         data_file.write(f"Available bandwidth (1): {available_bw_epoch[1]}% \n\n")
-        data_file.write(f"Modified network (2): {percentage[2]}% \n")
+        data_file.write(f"Packets lost Modified network (2): {percentage[2]}% \n")
         data_file.write(f"Available bandwidth (2): {available_bw_epoch[2]}% \n\n")
-        data_file.write(f"Modified network (3): {percentage[3]}% \n")
-        data_file.write(f"Available bandwidth (3): {available_bw_epoch[3]}% \n\n")
+        data_file.write(f"Packets lost Modified network (3): {percentage[3]}% \n")
+        data_file.write(f"Available bandwidth (3): {available_bw_epoch[3]}% \n\n")"""
     elif not evaluate:
-        data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 4)}% \n")
+        data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
     data_file.close    
 
     ## Build graph

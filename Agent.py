@@ -35,7 +35,8 @@ class Agent:
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
-        action = actions
+        #action = actions ##
+        action = actions + noise
         return action.detach().cpu().numpy()[0]
 
     def update_network_parameters(self, tau=None):
@@ -94,7 +95,7 @@ class CriticNetwork(nn.Module):
         if NEURAL_NETWORK == "duelling_q_network":
             #self.fc2 = nn.Linear(fc1_dims, fc2_dims)
             self.q = nn.Linear(fc1_dims, 1)
-            self.q_values = nn.Linear(fc1_dims, n_actions)
+            self.q_values = nn.Linear(fc1_dims, n_actions)       ##output
         elif NEURAL_NETWORK == "simple_q_network":
             self.q = nn.Linear(fc1_dims, 1)                           #1 dimention output
 
@@ -119,6 +120,10 @@ class CriticNetwork(nn.Module):
             average = T.mean(q_values, dim = 1, keepdim=True)
 
             q = value + (q_values - average)         #q = value + (q_value - average q values)
+            print("\n value: ", value)
+            print("\n q values: ", q_values)
+            print("\n average: ", average)
+            print("\n q: ", q)
         
         elif NEURAL_NETWORK == "simple_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))

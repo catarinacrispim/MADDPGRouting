@@ -402,23 +402,24 @@ class NetworkEngine:
     def communication_done(self):
         return all([component.is_done() for name, component in self.components.items() if "H" in name])
     
-    def set_different_topology(self, mod):
+    def set_different_topology_bw(self, mod):
+        #this approach simulates unavailable routers by seting the available bw with -10
 
-        if mod == "1":
+        if mod == 1:
             self.bws = {'H1': -10, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
                     'H11': 24, 'H12': -10, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
                     'H20': 36, 'H21': 34, 'H22': 36, 'H23': -10, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
                     'H29': 21, 'H30': 24, 'H31': 32, 'H32': 50, 'H33': 31, 'H34': -10, 'H35': 49, 'H36': 31, 'H37': 34,
                     'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': -10, 'H46': 43,
                     'H47': 41, 'H48': 24, 'H49': 30, 'H50': 33}
-        elif mod == "2":
+        elif mod == 2:
             self.bws = {'H1': 29, 'H2': 28, 'H3': -10, 'H4': 28, 'H5': 33, 'H6': -10, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
                     'H11': -10, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
                     'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
                     'H29': 21, 'H30': 24, 'H31': -10, 'H32': 50, 'H33': 31, 'H34': 32, 'H35': 49, 'H36': 31, 'H37': 34,
                     'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 34, 'H46': 43,
                     'H47': -10, 'H48': 24, 'H49': 30, 'H50': -10}
-        elif mod == "3":
+        elif mod == 3:
             self.bws = {'H1': 29, 'H2': 28, 'H3': 22, 'H4': -10, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
                     'H11': 24, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': -10, 'H17': 48, 'H18': 49, 'H19': -10,
                     'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
@@ -439,6 +440,21 @@ class NetworkEngine:
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
 
+    def set_different_topology_edges(self):
+        #this approach eliminates edges from the network, number of routers stays the same
+        self.changed_graph = pickle.load(open('network_edges_change.pickle', 'rb'))
+        self.create_components(self.changed_graph) #creates nodes and edges
+        self.calculate_paths()
+        self.hosts = self.get_all_hosts()
+        self.number_of_hosts = len(self.hosts)
+        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
+                                 len(self.graph_topology.edges(host)) == 1]
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
 
 def generate_traffic_sequence(network=None):
     if not network:
