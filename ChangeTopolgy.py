@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-#this approach eliminates routers from the network
+#this approach eliminates links from the network
 
 graph_to_change = pickle.load(open('small_network.pickle', 'rb'))
 G = nx.Graph(graph_to_change)
