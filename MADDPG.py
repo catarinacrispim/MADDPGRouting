@@ -13,7 +13,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES
 
 
 class MADDPG:
@@ -420,7 +420,7 @@ if __name__ == '__main__':
         for index in range(1, nr_epochs):
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
-
+        data_file.write(f"{NOTES}\n")
         """data_file.write(f"Packets lost Modified network (1): {percentage[1]}% \n")
         data_file.write(f"Available bandwidth (1): {available_bw_epoch[1]}% \n\n")
         data_file.write(f"Packets lost Modified network (2): {percentage[2]}% \n")
@@ -429,6 +429,7 @@ if __name__ == '__main__':
         data_file.write(f"Available bandwidth (3): {available_bw_epoch[3]}% \n\n")"""
     elif not evaluate:
         data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
+        data_file.write(f"{NOTES}\n")
     data_file.close    
 
     ## Build graph
@@ -442,6 +443,7 @@ if __name__ == '__main__':
         plt.ylabel("Reward")
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
         plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.legend()
         plt.show()
     elif evaluate:

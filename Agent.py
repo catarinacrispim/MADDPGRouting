@@ -89,7 +89,7 @@ class CriticNetwork(nn.Module):
 
         self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
         #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims)
-        ##self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
+        #self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
         #self.q = nn.Linear(fc1_dims, 1)
 
         if NEURAL_NETWORK == "duelling_q_network":
@@ -111,7 +111,7 @@ class CriticNetwork(nn.Module):
 
         if NEURAL_NETWORK == "duelling_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
-            #x = F.relu(self.fc2(x))
+            #x = F.relu(self.fc2(x)) ##
             value = self.q(x)
 
             q_values = T.softmax(self.q_values(x), dim=1)
@@ -127,6 +127,7 @@ class CriticNetwork(nn.Module):
         
         elif NEURAL_NETWORK == "simple_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
+            #x = F.relu(self.fc2(x)) ##
             q = self.q(x)
 
         return q
@@ -148,7 +149,7 @@ class ActorNetwork(nn.Module):
         self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
-        #self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
+        self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
         self.pi = nn.Linear(fc1_dims, n_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
@@ -158,7 +159,7 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         x = F.relu(self.fc1(state))            #activation function
-        #x = F.relu(self.fc2(x)) ##
+        x = F.relu(self.fc2(x)) ##
         pi = T.softmax(self.pi(x), dim=1)      #hidden layer -> output
 
         return pi

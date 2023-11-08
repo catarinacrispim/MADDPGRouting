@@ -36,6 +36,6 @@ nx.draw(G, with_labels=True)
 #G.remove_edge
 #G.remove_node()
 
-pickle.dump(G, open("network_edges_change.pickle", "wb"))
+#pickle.dump(G, open("network_edges_change.pickle", "wb"))
 
 plt.show()
