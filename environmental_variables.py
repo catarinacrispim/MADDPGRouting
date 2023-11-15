@@ -6,8 +6,8 @@ NUMBER_OF_HOSTS = 13
 NUMBER_OF_PATHS = 5
 NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 100      #epoch
-EPOCH_SIZE = 350    #episode
+NR_EPOCHS = 2      #epoch
+EPOCH_SIZE = 2    #episode
 
 NOTES = "sem fc2"
 
@@ -29,9 +29,11 @@ NEURAL_NETWORK = "simple_q_network"
 #NEURAL_NETWORK = "duelling_q_network"
 #NEURAL_NETWORK = "simple_q_network"
 
-EVALUATE = False
-#EVALUATE = True
+#EVALUATE = False
+EVALUATE = True
 
 ### Modified Network In Evaluate  ###
 #MODIFIED_NETWORK = "bw"
-MODIFIED_NETWORK = "edges"
+#MODIFIED_NETWORK = "edges"
+#MODIFIED_NETWORK = "intranet"
+MODIFIED_NETWORK = "real"

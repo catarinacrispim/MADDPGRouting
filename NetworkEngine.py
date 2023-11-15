@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from Link import Link
 from NetworkComponent import NetworkComponent
-from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE
+from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE, MODIFIED_NETWORK
 
 
 class NetworkEngine:
@@ -21,6 +21,7 @@ class NetworkEngine:
         self.hosts = {}
         self.switchs = {}
         self.components = {}
+        self.graph_data = False
 
         # self.graph_topology = nx.random_internet_as_graph(50)
 
@@ -73,10 +74,21 @@ class NetworkEngine:
         #print(self.bws)
         #print(self.single_con_hosts)
 
+        #nx.draw(self.graph_topology, with_labels=True)
+        #plt.show()
+        
+        #print("\n")
+        #print("communication sequences: ", '\n'.join([f"{key}: {value}" for key, value in self.communication_sequences.items()]))
+        #print("\n len communication sequences: ", len(self.communication_sequences))
         self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        #print("\n leu ficheiro all tms, com shape: ", len(self.all_tms))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)          #EPOCH_SIZE
+        #print("\n current rm index: ", self.current_tm_index)
+
         self.communication_sequences = self.all_tms[self.current_tm_index]
+        #print("\n communication seuqnece all_tms[current_tm_index]: ", '\n'.join([f"{key}: {value}" for key, value in self.communication_sequences.items()]))
+        #print("\n len communication seuqences: ", len(self.communication_sequences))
 
         """
         self.simulate_communication("H1", "H10", 2, 20)
@@ -91,14 +103,22 @@ class NetworkEngine:
             host = f"H{node + 1}"
             if host not in self.components:
                 self.components[host] = NetworkComponent(host, self.communication_sequences.get(host, []))
+        #print("\n hosts: ", self.components)
 
-        for edge in graph.edges:
+        for edge in graph.edges(data=True):
             dst = f"H{edge[1] + 1}"
             origin = f"H{edge[0] + 1}"
-            link = Link(origin, dst, 100)
+            if self.graph_data:
+                link_bw = edge[2]['bw']
+                link = Link(origin, dst, link_bw)
+            else:
+                link = Link(origin, dst, 100)
             self.components[origin].add_link(link)
             self.components[dst].add_link(link)
             self.links[link.get_id()] = link
+        #print("\n edges: ")
+        #for key, values in self.links.items():
+        #    print(f"{key}, {values.bw_total}")
 
     def build_graph(self):
 
@@ -173,16 +193,20 @@ class NetworkEngine:
     def calculate_paths(self):
 
         all_hosts = [component for component in self.components if "H" in component]
+        #print("\n all hosts: ", all_hosts)
 
         for src in all_hosts:
-
             graph_src = int(src[1:]) - 1
             all_dsts = [h for h in all_hosts if h != src]
             for dst in all_dsts:
+                #print("\n", dst)
                 graph_dst = int(dst[1:]) - 1
-                self.paths[(src, dst)] = self.k_shortest_paths(self.graph_topology, graph_src, graph_dst, 5)
+                self.paths[(src, dst)] = self.k_shortest_paths(self.graph_topology, graph_src, graph_dst, 3)
                 self.components[src].set_active_path(dst, 0)
-        #print(self.paths)
+        #print("\n paths")#, self.paths)
+        #for key, values in self.paths.items():
+        #    print(f"{key}: {values}")
+        print("\n components: ", self.components)
         """   
         for src_host_id in range(1, NUMBER_OF_HOSTS + 1):
             src = "H{}".format(src_host_id)
@@ -220,7 +244,7 @@ class NetworkEngine:
                 h.active_dst = dst
                 path_id = h.get_active_path(dst)
                 self.simulate_communication(host, dst, path_id, self.bws[host], 2)
-                # print(f"SENDING FROM {host} to {dst}")
+                print(f"\n SENDING FROM {host} to {dst}")
             else:
                 h.update_communication()
                 # means the communication is finished
@@ -427,13 +451,13 @@ class NetworkEngine:
                     'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': -10, 'H45': 34, 'H46': 43,
                     'H47': 41, 'H48': -10, 'H49': 30, 'H50': 33}
         
-        #self.create_components(self.graph_topology)
+        self.create_components(self.graph_topology)
         self.calculate_paths()
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0}
-        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
-                                 len(self.graph_topology.edges(host)) == 1]
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
+                                 len(self.graph_topology.edges(host)) == 1]   
         self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         self.all_tms = json.load(open("all_tms_test.json", mode="r"))
         self.current_index = 0
@@ -448,13 +472,151 @@ class NetworkEngine:
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0}
-        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
-                                 len(self.graph_topology.edges(host)) == 1]
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.changed_graph if
+                                 len(self.changed_graph.edges(host)) == 1]   #graph topology to changed 
         self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         self.all_tms = json.load(open("all_tms_test.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
+
+    def set_different_topology_intranet(self):
+        #this approach evaluates the agents performance in a different graph arquitecture
+        n = 23 #num nodes
+        p = 0.15 # probability of edge creation
+        #graph = nx.erdos_renyi_graph(n,p)
+        graph = nx.barabasi_albert_graph(25, 2)
+        #self.build_graph()
+        print()
+        #nx.draw(graph, with_labels=True)
+        #plt.show()
+
+        self.changed_graph = graph
+
+        self.create_components(self.changed_graph) #creates nodes and edges
+        self.calculate_paths()
+        self.hosts = self.get_all_hosts()
+        self.number_of_hosts = len(self.hosts)
+        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.changed_graph if
+                                 len(self.changed_graph.edges(host)) == 1]
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]    
+
+    def set_different_topology_real_topology(self):
+        self.links = {}
+        self.hosts = {}
+        self.switchs = {}
+        self.components = {}
+        self.paths = {}
+        self.bws = {}
+        self.communication_sequences = {'H8': ['H31', 'H40', 'H4', 'H1', 'H46', 'H29', 'H3', 'H64', 'H30', 'H56', 'H28', 'H55', 'H14', 'H55', 'H4', 'H11', 'H35', 'H38', 'H22', 'H58', 'H5', '', 'H32', 'H64', 'H14', 'H50', 'H28', 'H59', '', ''], 
+                                        'H13': ['H29', 'H65', 'H53', 'H42', 'H42', 'H42', '', 'H21', 'H21', 'H51', 'H32', 'H44', 'H9', 'H28', 'H65', 'H5', 'H44', 'H55', 'H20', 'H64', 'H18', 'H29', 'H33', 'H5', 'H35', 'H23', 'H59', 'H27', 'H37', 'H57'], 
+                                        'H22': ['H50', 'H38', 'H64', 'H54', 'H54', 'H29', 'H63', '', 'H46', 'H47', 'H34', 'H47', 'H3', 'H8', 'H5', 'H25', 'H12', '', 'H18', 'H56', 'H6', 'H26', 'H49', 'H12', 'H13', 'H38', 'H9', 'H36', 'H58', 'H60'], 
+                                        'H31': ['', 'H32', 'H53', 'H46', 'H63', 'H11', 'H3', 'H18', 'H14', 'H25', 'H63', 'H18', 'H65', 'H40', 'H53', 'H9', 'H44', 'H22', 'H61', 'H30', 'H36', '', 'H3', 'H46', 'H16', 'H19', 'H37', 'H49', 'H9', 'H11'], 
+                                        'H39': ['H6', 'H53', 'H42', 'H61', 'H34', 'H3', 'H48', 'H40', 'H28', 'H44', 'H10', 'H14', 'H17', 'H40', 'H48', '', 'H30', 'H62', 'H29', 'H31', 'H46', 'H10', 'H44', 'H31', 'H20', 'H49', 'H36', 'H34', 'H17', 'H18'], 
+                                        'H48': ['H44', 'H50', 'H21', 'H12', 'H30', 'H59', 'H6', 'H23', 'H43', 'H65', 'H24', 'H24', 'H59', 'H56', 'H42', 'H43', 'H24', 'H44', 'H39', 'H32', 'H38', 'H40', 'H65', 'H63', 'H23', 'H38', 'H36', 'H1', 'H61', 'H41'], 
+                                        'H57': ['H16', 'H61', 'H13', 'H1', 'H27', 'H4', 'H2', 'H44', 'H22', 'H10', 'H61', 'H23', 'H34', 'H32', 'H8', '', 'H13', 'H11', 'H28', 'H39', 'H44', 'H54', 'H23', 'H39', 'H52', 'H38', 'H37', 'H47', 'H50', 'H34'], 
+                                        'H12': ['H64', 'H15', 'H2', 'H37', 'H18', 'H37', 'H52', 'H41', 'H65', 'H45', 'H39', 'H42', 'H36', 'H52', 'H41', 'H28', 'H11', 'H64', 'H28', 'H35', 'H40', 'H30', '', 'H6', 'H30', 'H29', 'H42', 'H34', 'H56', 'H37'], 
+                                        'H21': ['H51', 'H15', 'H54', 'H7', 'H15', 'H1', 'H50', 'H62', 'H36', 'H2', 'H54', 'H1', 'H41', 'H33', '', 'H58', 'H24', 'H18', 'H5', 'H6', 'H55', 'H56', 'H62', 'H49', 'H2', 'H37', 'H44', 'H2', 'H4', 'H48'], 
+                                        'H30': ['H47', 'H26', 'H59', 'H19', 'H36', 'H54', 'H41', 'H17', 'H56', 'H45', 'H16', 'H63', '', 'H11', 'H11', 'H41', 'H49', 'H11', 'H21', 'H63', 'H29', 'H47', 'H44', 'H57', 'H33', 'H42', 'H17', 'H44', 'H51', 'H50'], 
+                                        'H38': ['H32', 'H25', 'H33', 'H24', 'H19', 'H58', 'H9', 'H22', 'H65', 'H25', 'H5', 'H5', 'H45', 'H14', 'H56', 'H16', 'H51', 'H29', '', 'H5', 'H53', 'H31', 'H51', 'H35', 'H23', 'H25', 'H2', 'H26', '', 'H61'], 
+                                        'H47': ['', 'H29', 'H18', 'H12', '', 'H23', 'H61', 'H3', '', 'H59', 'H7', 'H60', 'H27', 'H9', 'H57', 'H27', 'H53', 'H3', 'H43', 'H1', 'H64', 'H45', 'H57', 'H27', 'H40', 'H10', 'H26', 'H25', 'H30', ''], 'H56': ['H29', 'H12', '', 'H16', '', 'H23', 'H41', 'H62', 'H2', 'H16', 'H40', 'H14', 'H48', 'H31', 'H49', 'H46', 'H14', '', 'H20', 'H30', 'H15', 'H33', '', 'H53', 'H11', 'H3', 'H34', 'H10', 'H36', 'H41'], 
+                                        'H65': ['H4', 'H28', 'H46', 'H50', 'H5', 'H44', 'H46', 'H38', 'H40', 'H29', 'H4', 'H35', 'H12', 'H11', 'H26', 'H52', 'H38', 'H41', 'H34', 'H2', 'H1', 'H18', 'H43', 'H39', 'H8', 'H33', 'H2', 'H10', 'H45', 'H32'], 'H1': ['H15', 'H24', 'H42', 'H61', 'H45', 'H20', 'H50', 'H5', 'H10', 'H55', 'H51', 'H12', 'H12', 'H38', 'H3', 'H55', 'H58', 'H53', 'H45', 'H7', 'H47', 'H36', 'H30', 'H39', 'H41', 'H40', 'H43', 'H47', 'H55', 'H2'], 'H2': ['H56', 'H12', 'H63', 'H14', 'H14', 'H52', 'H36', 'H11', 'H14', 'H18', 'H40', 'H65', 'H36', 'H47', 'H19', '', 'H28', 'H4', 'H24', 'H48', 'H9', '', 'H30', 'H34', 'H16', '', 'H22', 'H40', 'H63', 'H7'], 'H3': ['H16', '', 'H40', 'H65', 'H32', 'H62', 'H64', 'H40', 'H20', 'H48', 'H26', 'H57', 'H4', 'H15', 'H28', 'H8', 'H31', 'H36', 'H16', 'H36', 'H41', 'H34', '', 'H56', 'H4', 'H35', 'H19', 'H1', 'H52', 'H38'], 
+                                        'H4': ['H56', 'H19', 'H64', 'H15', 'H10', 'H54', 'H20', 'H36', 'H44', 'H46', 'H47', 'H39', 'H6', 'H55', 'H52', '', 'H15', 'H61', 'H34', 'H64', 'H8', 'H43', 'H27', 'H1', 'H65', 'H2', '', 'H50', '', 'H30'], 
+                                        'H5': ['H15', 'H16', 'H34', 'H50', 'H38', 'H55', 'H61', 'H48', 'H8', 'H11', 'H59', 'H40', 'H56', 'H63', 'H41', 'H24', 'H40', 'H12', 'H4', 'H8', 'H42', '', '', 'H22', 'H6', 'H9', 'H11', 'H1', '', 'H33'], 'H6': ['H17', 'H57', 'H12', 'H48', 'H62', 'H29', 'H49', 'H33', 'H53', 'H26', 'H16', 'H16', 'H37', 'H20', 'H52', 'H45', 'H7', 'H34', 'H45', 'H41', 'H18', 'H46', 'H30', 'H64', '', 'H5', 'H62', 'H1', 'H63', 'H10'], 'H7': ['H33', 'H13', 'H51', '', 'H14', 'H29', 'H62', 'H59', 'H38', 'H16', 'H38', 'H8', 'H35', '', 'H42', 'H11', 'H8', 'H24', 'H39', 'H50', 'H38', 'H23', 'H27', 'H54', '', 'H55', '', 'H50', 'H40', 'H34'], 'H9': ['H41', 'H45', 'H2', 'H59', 'H29', 'H14', 'H10', '', 'H41', 'H10', 'H13', 'H20', 'H33', '', 'H55', 'H6', 'H28', 'H31', 'H55', 'H49', 'H48', 'H20', 'H58', 'H13', 'H17', 'H64', 'H8', 'H13', 'H19', 'H14'], 'H10': ['H12', '', 'H57', 'H3', 'H24', 'H51', 'H46', 'H18', 'H52', 'H39', 'H3', 'H47', 'H38', 'H22', 'H61', 'H24', 'H24', 'H43', 'H1', 'H51', 'H62', 'H58', 'H37', 'H3', '', 'H49', 'H16', 'H41', '', 'H53'], 'H14': ['H36', 'H62', 'H6', 'H18', 'H52', 'H42', 'H59', 'H56', 'H13', 'H37', 'H4', 'H9', 'H37', 'H65', 'H7', 'H37', 'H61', 'H51', 'H36', '', 'H63', 'H2', 'H12', 'H40', 'H54', 'H52', 'H55', 'H32', 'H34', 'H45'], 'H11': ['H25', 'H29', '', 'H40', 'H13', '', 'H60', 'H8', 'H30', 'H44', 'H40', 'H49', '', 'H9', 'H46', 'H31', '', 'H49', 'H37', 'H55', 'H38', 'H1', 'H49', '', 'H60', 'H31', 'H31', 'H42', 'H10', 'H45'], 'H20': ['H4', 'H43', 'H8', 'H25', 'H1', 'H33', 'H13', 'H38', 'H63', 'H63', 'H33', 'H24', '', 'H28', 'H36', 'H11', 'H7', 'H35', 'H54', 'H25', 'H26', 'H51', 'H51', 'H32', 'H13', 'H60', 'H34', 'H63', 'H13', 'H26'], 'H15': ['H46', 'H42', '', 'H16', 'H14', 'H40', 'H46', 'H65', 'H51', 'H31', 'H35', 'H49', 'H24', 'H64', 'H3', 'H26', 'H54', '', 'H63', 'H27', 'H9', 'H58', 'H49', 'H18', 'H9', 'H37', 'H58', 'H41', 'H41', 'H1'], 'H16': ['H10', 'H50', 'H56', 'H1', 'H4', 'H40', 'H18', 'H49', 'H32', 'H23', 'H19', 'H30', 'H9', 'H45', 'H35', 'H4', 'H17', 'H43', 'H44', 'H38', '', '', 'H53', 'H19', 'H58', 'H27', 'H61', '', 'H37', 'H15'], 'H17': ['H54', 'H35', 'H36', 'H41', 'H61', 'H12', 'H21', 'H46', 'H11', 'H12', 'H52', 'H20', 'H36', '', 'H8', 'H21', 'H64', 'H22', 'H41', 'H54', 'H37', 'H41', 'H37', 'H25', 'H22', 'H48', 'H12', 'H40', 'H40', 'H55'], 'H18': ['H43', 'H24', 'H34', 'H51', 'H3', 'H60', 'H44', 'H48', 'H20', 'H28', 'H6', 'H61', 'H43', 'H23', 'H46', 'H45', 'H37', 'H30', 'H55', 'H32', 'H41', 'H38', 'H13', 'H20', 'H47', 'H48', 'H13', 'H23', 'H61', 'H42'], 'H19': ['H28', 'H33', 'H46', 'H64', '', 'H64', 'H9', 'H4', 'H38', 'H27', 'H6', 'H18', '', 'H12', 'H3', 'H48', 'H35', 'H60', 'H53', 'H21', 'H38', 'H2', 'H57', 'H55', 'H65', 'H60', 'H22', 'H8', 'H30', 'H6'], 'H23': ['H10', 'H45', 'H20', 'H30', 'H63', 'H9', '', 'H12', 'H26', 'H8', 'H6', 'H57', 'H55', 'H39', 'H12', 'H34', 'H36', 'H41', 'H33', '', 'H51', 'H30', 'H48', '', 'H2', 'H39', 'H53', 'H42', 'H43', 'H33'], 'H24': ['H36', 'H34', 'H48', 'H20', 'H16', 'H37', 'H35', 'H5', 'H40', 'H4', 'H17', 'H63', 'H28', 'H2', 'H26', 'H44', 'H59', 'H22', '', 'H59', 'H30', 'H32', 'H26', 'H32', 'H43', 'H7', '', 'H5', 'H61', 'H41'], 'H25': ['H54', 'H33', 'H59', 'H40', 'H9', 'H29', 'H5', 'H49', 'H65', 'H56', 'H45', 'H61', 'H57', 'H28', 'H20', 'H42', 'H54', 'H58', 'H38', 'H65', 'H43', 'H51', 'H43', 'H53', 'H38', 'H33', 'H32', 'H46', 'H60', 'H20'], 'H26': ['H44', 'H46', 'H12', 'H48', '', 'H19', 'H34', 'H13', 'H54', 'H35', 'H5', 'H2', 'H7', 'H53', 'H59', 'H36', 'H46', 'H45', 'H17', 'H44', 'H47', 'H40', 'H9', 'H58', 'H5', 'H22', 'H41', 'H20', 'H50', 'H30'], 'H27': ['H7', 'H46', 'H40', 'H45', 'H50', 'H6', 'H2', 'H28', 'H5', 'H64', 'H53', 'H31', 'H56', 'H65', 'H16', 'H38', 'H56', 'H22', 'H37', 'H21', 'H15', 'H44', 'H15', 'H63', 'H30', 'H37', 'H45', 'H50', 'H29', 'H7'], 'H28': ['H33', 'H41', 'H24', 'H3', 'H34', 'H31', 'H65', 'H3', 'H49', '', 'H43', 'H25', 'H58', '', 'H19', 'H26', 'H13', 'H50', 'H41', 'H3', 'H34', 'H59', 'H16', 'H33', 'H55', 'H43', 'H12', 'H8', 'H8', 'H56'], 'H29': ['H39', 'H35', 'H27', 'H63', 'H45', 'H23', 'H18', 'H52', 'H5', 'H2', 'H53', 'H24', 'H19', 'H24', 'H34', 'H35', 'H4', 'H32', 'H37', 'H35', 'H38', 'H14', 'H2', 'H3', 'H47', 'H52', 'H47', 'H31', 'H43', 'H55'], 'H32': ['H56', '', 'H31', 'H55', 'H65', 'H23', 'H64', 'H53', 'H48', 'H64', '', 'H30', 'H18', 'H15', 'H5', 'H29', 'H9', 'H26', 'H45', 'H17', 'H1', 'H8', 'H29', 'H20', 'H22', 'H63', 'H37', 'H23', 'H20', 'H18'], 'H33': ['H1', 'H47', 'H18', 'H41', 'H58', 'H50', 'H51', 'H37', 'H59', 'H16', 'H53', 'H64', '', 'H2', '', 'H24', 'H55', 'H49', 'H62', '', 'H34', 'H50', '', 'H51', 'H27', 'H17', 'H10', 'H42', 'H22', 'H15'], 'H34': ['H54', 'H60', 'H39', 'H12', 'H32', 'H22', 'H5', 'H42', 'H1', 'H52', 'H62', 'H45', 'H37', '', 'H39', 'H57', 'H16', 'H12', 'H32', 'H62', 'H63', 'H52', 'H28', 'H33', 'H15', 'H58', 'H23', '', 'H43', 'H37'], 'H35': ['H20', 'H39', 'H41', 'H25', 'H18', 'H36', 'H53', 'H5', 'H2', '', 'H15', 'H26', 'H48', 'H14', 'H50', 'H27', 'H39', '', 'H61', 'H12', 'H23', 'H14', 'H34', 'H37', 'H65', 'H25', 'H39', 'H31', 'H36', 'H64'], 'H36': ['H4', 'H56', '', 'H57', 'H59', 'H57', 'H24', 'H15', 'H21', 'H8', 'H35', 'H34', 'H28', 'H65', '', 'H21', 'H2', 'H40', 'H17', 'H38', 'H2', 'H24', 'H47', 'H63', 'H61', 'H61', '', 'H35', 'H42', 'H51'], 'H37': ['H39', 'H26', 'H12', 'H38', 'H33', '', 'H45', 'H12', 'H57', 'H47', 'H3', 'H65', 'H11', 'H29', 'H14', 'H25', 'H49', 'H3', 'H17', '', 'H12', 'H63', 'H21', 'H1', 'H43', 'H48', 'H19', 'H15', 'H59', 'H39'], 'H40': ['', 'H45', 'H63', 'H6', 'H61', 'H22', 'H15', 'H13', 'H25', 'H58', 'H57', 'H4', 'H42', 'H57', 'H26', 'H33', 'H41', 'H30', 'H61', 'H50', 'H18', '', 'H35', 'H48', 'H10', 'H9', 'H57', 'H65', 'H64', 'H21'], 'H41': ['H2', 'H18', 'H35', 'H43', 'H25', 'H30', 'H36', 'H16', 'H5', '', '', 'H47', 'H55', 'H32', '', 'H43', 'H52', 'H30', 'H14', 'H14', '', 'H56', 'H28', 'H54', 'H20', 'H54', 'H47', 'H55', 'H48', 'H5'], 'H42': ['H44', 'H43', 'H24', 'H56', 'H55', 'H53', 'H28', 'H44', '', 'H32', 'H35', 'H17', 'H12', 'H8', 'H14', '', 'H32', 'H32', 'H4', 'H22', 'H32', 'H54', 'H56', 'H5', 'H38', 'H4', 'H36', 'H6', 'H10', 'H53'], 'H43': ['H57', 'H62', 'H31', 'H48', 'H38', 'H26', 'H32', 'H21', 'H18', 'H23', 'H1', 'H23', 'H50', '', 'H20', 'H5', 'H30', 'H23', 'H65', 'H13', 'H7', 'H10', 'H65', 'H41', 'H15', 'H49', 'H3', 'H58', '', 'H4'], 'H44': ['H34', 'H63', 'H11', 'H8', 'H21', 'H55', 'H11', 'H10', 'H54', 'H6', 'H16', 'H50', 'H23', 'H45', 'H7', 'H45', 'H19', 'H47', 'H28', 'H33', '', 'H42', 'H61', 'H26', 'H65', 'H3', 'H15', 'H18', '', 'H30'], 'H45': ['H12', 'H58', 'H63', 'H41', 'H63', 'H33', 'H11', 'H4', 'H63', 'H11', 'H44', 'H29', 'H23', 'H13', 'H24', 'H40', 'H44', 'H16', 'H13', 'H7', 'H20', 'H5', 'H26', 'H2', 'H11', 'H14', 'H31', 'H41', 'H25', 'H56'], 'H46': ['H65', '', 'H30', '', 'H47', 'H33', 'H41', 'H48', 'H24', 'H65', 'H50', 'H5', 'H54', 'H29', 'H27', 'H15', 'H61', 'H19', 'H61', 'H3', 'H64', 'H20', '', 'H63', 'H58', 'H65', 'H27', 'H12', 'H36', 'H56'], 'H49': ['H13', '', 'H4', 'H7', 'H5', 'H63', '', 'H36', 'H21', 'H52', 'H56', 'H10', 'H12', 'H14', 'H39', 'H38', 'H25', '', 'H28', 'H32', 'H57', 'H11', '', 'H55', 'H19', 'H64', 'H61', 'H22', 'H50', 'H9'], 'H50': ['', 'H21', 'H45', 'H32', '', 'H61', 'H25', 'H10', 'H8', 'H42', 'H52', 'H60', 'H44', 'H26', 'H53', 'H47', 'H48', 'H7', 'H54', 'H19', 'H59', 'H6', 'H35', 'H14', 'H24', 'H41', 'H24', 'H40', 'H10', 'H40'], 'H51': ['H38', 'H2', 'H31', 'H8', 'H28', 'H61', 'H26', 'H30', 'H7', '', 'H7', 'H49', 'H42', 'H60', 'H15', 'H65', 'H29', 'H47', 'H57', 'H57', 'H2', 'H29', '', 'H22', 'H15', '', 'H28', 'H2', 'H39', 'H52'], 'H52': ['H6', 'H39', 'H43', 'H28', 'H31', 'H23', 'H20', 'H6', 'H6', 'H2', 'H17', '', 'H23', 'H54', 'H53', 'H48', 'H64', '', 'H11', 'H12', 'H42', 'H5', 'H3', 'H23', 'H39', 'H25', 'H5', 'H18', '', 'H30'], 'H53': ['H1', 'H43', 'H7', 'H41', 'H20', 'H43', 'H43', 'H4', '', 'H63', 'H29', 'H51', 'H25', 'H3', 'H29', 'H21', 'H28', 'H47', 'H58', 'H26', 'H41', 'H8', 'H21', 'H2', 'H31', 'H24', 'H56', 'H58', 'H21', 'H35'], 'H54': ['H25', 'H55', 'H32', 'H25', 'H21', 'H7', 'H45', 'H30', 'H63', 'H64', 'H40', 'H12', 'H36', 'H62', 'H44', 'H13', 'H8', 'H12', 'H6', '', 'H18', 'H36', 'H49', 'H57', 'H58', 'H41', 'H43', 'H50', 'H32', ''], 'H55': ['H63', 'H59', 'H49', 'H51', 'H31', 'H4', 'H49', 'H32', 'H64', 'H47', 'H59', 'H54', 'H10', 'H1', 'H45', 'H62', 'H38', 'H49', 'H38', 'H27', 'H27', 'H54', 'H18', 'H50', 'H15', 'H61', 'H7', 'H58', 'H25', 'H57'], 'H58': ['H1', 'H59', 'H1', 'H2', 'H5', 'H13', 'H53', 'H22', 'H1', 'H4', '', 'H18', 'H31', 'H7', 'H3', 'H6', 'H1', 'H45', 'H63', 'H28', 'H61', 'H60', 'H65', 'H8', 'H8', 'H24', 'H41', 'H44', 'H60', 'H50'], 'H59': ['H38', 'H35', 'H9', '', 'H64', 'H49', '', 'H56', 'H57', 'H12', '', 'H15', 'H11', 'H37', 'H54', 'H47', 'H53', 'H39', '', 'H49', 'H65', '', 'H37', 'H60', '', 'H29', 'H17', 'H49', 'H14', 'H51'], 'H60': ['H5', 'H31', 'H7', 'H49', '', 'H36', 'H62', 'H33', 'H56', 'H51', 'H65', 'H54', 'H45', 'H43', 'H65', 'H55', 'H57', 'H55', 'H62', 'H58', 'H7', 'H8', 'H31', 'H42', 'H5', 'H25', 'H41', 'H4', 'H18', 'H3'], 'H61': ['H31', 'H59', 'H37', 'H9', 'H12', 'H64', 'H54', 'H33', 'H37', 'H64', 'H10', 'H65', 'H49', 'H17', 'H22', 'H12', 'H49', 'H40', 'H11', 'H2', 'H40', 'H20', 'H19', 'H23', 'H49', 'H16', 'H55', 'H42', 'H6', ''], 'H62': ['H15', 'H10', 'H11', 'H10', 'H37', '', 'H52', 'H31', 'H49', 'H7', 'H5', 'H49', 'H22', 'H59', 'H30', 'H31', 'H64', 'H10', 'H13', 'H6', 'H8', 'H11', 'H40', 'H47', 'H64', 'H14', 'H11', 'H28', 'H61', 'H23'], 'H63': ['H28', 'H8', 'H2', 'H6', 'H17', 'H15', 'H51', 'H25', 'H15', 'H48', 'H45', 'H64', 'H60', 'H21', 'H56', 'H2', 'H28', '', 'H16', 'H45', 'H43', 'H40', 'H49', 'H10', 'H23', 'H43', 'H29', 'H26', 'H39', 'H40'], 
+                                        'H64': ['H55', 'H20', 'H12', 'H40', 'H29', '', 'H20', 'H28', 'H15', 'H61', '', 'H6', 'H1', 'H2', 'H29', '', 'H28', 'H26', 'H42', 'H1', 'H24', 'H41', '', 'H41', 'H49', 'H7', 'H18', 'H30', 'H25', '']
+                                        }
+        
+        
+        self.all_tms = {}
+        self.graph_data = True
+        
+        self.graph_topology = pickle.load(open("intranet_network.pickle", "rb"))
+
+        
+        self.create_components(self.graph_topology) #creates nodes and edges
+
+        self.hosts = self.get_all_hosts()
+        for host in self.hosts:
+            self.bws[host] = random.randint(20, 50)
+
+        self.calculate_paths()
+
+        """# create components
+        for node in self.graph.nodes:
+            #host = f"H{node + 1}"
+            if node[0] == 'H':
+                #host = f"H{node[1:]}"
+                host = node
+            else:
+                continue
+            if host not in self.components:
+                #self.components[host] = NetworkComponent(host, self.communication_sequences.get(host, []))
+                self.components[host] = NetworkComponent(host, '')
+        print("hosts: ", self.components)
+
+        for edge in self.graph.edges(data=True):
+            #print("\n edge data: ", edge)
+            if edge[1][0] == 'H':
+                #dst = f"H{edge[1][1:]}"
+                dst = edge[1]
+            else:
+                continue #ignore host
+            if edge[0][0] == 'H':
+                #origin = f"H{edge[0][1:]}"
+                origin = edge[0]
+            else:
+                continue #ignore host 
+            link_bw = edge[2]['bw']
+            link = Link(origin, dst, link_bw)
+            self.components[origin].add_link(link)
+            self.components[dst].add_link(link)
+            self.links[link.get_id()] = link
+        print("\n edges: ")
+        for key, values in self.links.items():
+            print(f"{key}, {values.bw_total}")
+
+        # calculate paths
+        all_hosts = [component for component in self.components if "H" in component]
+        print("\n all hosts: ", all_hosts)
+
+        for src in all_hosts:
+            #graph_src = int(src[1:]) - 1
+            #graph_src = int(src[1:])
+            graph_src = src
+            all_dsts = [h for h in all_hosts if h != src]
+            for dst in all_dsts:
+                #graph_dst = int(dst[1:]) - 1
+                #graph_dst = int(dst[1:])
+                graph_dst = dst
+                print("\n graph topology: ", self.graph)
+                self.paths[(src, dst)] = self.k_shortest_paths(self.graph, graph_src, graph_dst, 5)
+                self.components[src].set_active_path(dst, 0)
+        #print("\n paths", self.paths)
+        for key, values in self.paths.items():
+            print(f"{key}, {values}")
+        """
+
+        #print("\n hosts: ", self.hosts)
+        self.number_of_hosts = len(self.hosts)
+        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        #self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph if 
+                               # len(self.graph.edges(host)) == 1]  
+        self.single_con_hosts = [host for host in self.graph_topology if 
+                                len(self.graph_topology.edges(host)) == 1]  
+        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        
+        self.all_tms = generate_traffic_sequence_intranet(self)
+        
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
+
+
 
 def generate_traffic_sequence(network=None):
     if not network:
@@ -471,6 +633,36 @@ def generate_traffic_sequence(network=None):
             dsts = communications.get(host, [])
             dsts.append(dst)
             communications[host] = dsts
-    #print(communications)
-    #print(bws)
+    print("\n comunications: ", communications)
+    print("\n bws: ", bws)
+    return  communications
+
+def generate_traffic_sequence_intranet(network=None):
+    if not network:
+      network = NetworkEngine()
+    hosts = network.get_all_hosts()
+    bws = {}
+    communications = {}
+
+    start = ['H8', 'H22', 'H39', 'H57']
+    end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
+
+    for j in range(100):
+        communications[j] = {}
+        for host in hosts:
+        #for host in start:
+            #print("\n host: ", host)
+            bws[host] = random.randint(20, 50)
+            for i in range(30):
+                dst = network.get_random_dst(host, hosts)
+                #dst = random.choice(end)
+                #print("\n dst: ", dst)
+                dsts = communications[j].get(host, [])
+                #print("\n dsts: ", dsts)
+                dsts.append(dst)
+                communications[j][host] = dsts
+            #print("communications host: ", communications[j][host])
+        print("communications host: ", communications[j])
+    #print("\n comunications: ", communications)
+    #print("\n bws: ", bws)
     return  communications

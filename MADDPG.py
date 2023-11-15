@@ -214,6 +214,10 @@ if __name__ == '__main__':
         nr_epochs = 4
     elif evaluate and MODIFIED_NETWORK == "edges":
         nr_epochs = 2
+    elif evaluate and MODIFIED_NETWORK == "intranet":
+        nr_epochs = 2
+    elif evaluate and MODIFIED_NETWORK == "real":
+        nr_epochs = 2
 
     percentage = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
@@ -229,6 +233,13 @@ if __name__ == '__main__':
 
         elif MODIFIED_NETWORK == "edges" and evaluate and epoch != 0:
             eng.set_different_topology_edges()
+
+        elif MODIFIED_NETWORK == "intranet" and evaluate and epoch != 0:
+            eng.set_different_topology_intranet()
+        
+        elif MODIFIED_NETWORK == "real" and evaluate and epoch != 0:
+            eng.set_different_topology_real_topology()
+
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
         available_bw_episode = np.zeros(episode_size)
