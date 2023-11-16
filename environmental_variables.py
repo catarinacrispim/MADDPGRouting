@@ -7,7 +7,7 @@ NUMBER_OF_PATHS = 5
 NUMBER_OF_AGENTS = 25
 
 NR_EPOCHS = 2      #epoch
-EPOCH_SIZE = 2    #episode
+EPOCH_SIZE = 1    #episode
 
 NOTES = "sem fc2"
 

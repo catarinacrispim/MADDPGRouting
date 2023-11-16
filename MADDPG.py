@@ -120,21 +120,19 @@ class MADDPG:
 
 
 if __name__ == '__main__':
-
-    row = 9324
-    col = 1
-    UPDATE_STEPS = 16
+    #row = 9324
+    #col = 1
+    #UPDATE_STEPS = 16
+    
     eng = NetworkEngine()
     env = NetworkEnv(eng)
 
-    n_state = 845
+    #n_state = 845
     n_action = 5 ##3
-
     # onlineQNetwork = QNetwork()
+    
     total_rewards = []
-
     agents = eng.get_all_hosts()
-
     all_hosts = eng.get_all_hosts()
 
     agent_dims = [STATE_SIZE for host in all_hosts]
@@ -200,12 +198,11 @@ if __name__ == '__main__':
     all_rewards = []
     packet_loss_evaluate = []
     packet_sent_evaluate = []
-    
     experience_pck_lost = 0
     experience_pck_sent = 0
 
     #print(all_hosts[10])
-    nr_trains = 1
+    #nr_trains = 1
 
     #nr_epochs = NR_EPOCHS if not evaluate else 4
     if not evaluate:
@@ -239,6 +236,19 @@ if __name__ == '__main__':
         
         elif MODIFIED_NETWORK == "real" and evaluate and epoch != 0:
             eng.set_different_topology_real_topology()
+            all_hosts = eng.get_all_hosts()
+            agent_dims = [STATE_SIZE for host in all_hosts]
+            agent_dim = STATE_SIZE
+            critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
+            maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
+                                fa1=10, fa2=80, fc1=15, fc2=80,
+                                alpha=0.0001, beta=0.0001, tau=0.0001,
+                                chkpt_dir='.\\tmp\\maddpg\\')
+
+            memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims,
+                                            n_action, NUMBER_OF_AGENTS, batch_size=100)
+            maddpg_agents.load_checkpoint()
+            
 
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
@@ -302,11 +312,9 @@ if __name__ == '__main__':
                     print("\n shape all dsts ", np.shape(np.array(all_dsts)))
                     print(np.array(all_dsts))
                     print("\n shape get link usage ", np.shape(eng.get_link_usage))"""
-
                     #print("\n\n", state)
                     #print("\n shape state ", np.shape(state))
                     #print(state.reshape(33))
-
 
                     critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
@@ -315,6 +323,7 @@ if __name__ == '__main__':
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
+                    index = index % NUMBER_OF_AGENTS             #allow for scalability while working with 25 agents
                     if next_dsts.get(host, ''):
 
                         prob = -1 if evaluate else max(0.1, (0.3 - 0.0001 * epoch))
@@ -365,6 +374,7 @@ if __name__ == '__main__':
                     else:
                         actions.append(actions_dict[host][next_dsts[host]])
 
+                
                 memory.store_transition(states, actions, rewards, new_next_states, done, critic_states,
                                         all_critic_new_states)
 
