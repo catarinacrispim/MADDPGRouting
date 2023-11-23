@@ -10,12 +10,17 @@ from sklearn.preprocessing import MinMaxScaler
 
 from Link import Link
 from NetworkComponent import NetworkComponent
-from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE, MODIFIED_NETWORK, NUMBER_OF_PATHS
+from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE, MODIFIED_NETWORK, NUMBER_OF_PATHS, TOPOLOGY_TYPE
 
 
 class NetworkEngine:
 
     def __init__(self):
+
+        if TOPOLOGY_TYPE == "service_provider":
+            self.set_service_provider_topology()
+            return
+
         self.graph_topology = pickle.load(open('small_network.pickle', 'rb'))  # nx.Graph()
         self.links = {}
         self.hosts = {}
@@ -494,7 +499,7 @@ class NetworkEngine:
         #plt.show()
         self.setup()
 
-    def set_different_topology_real_topology(self):
+    def set_service_provider_topology(self):
         self.links = {}
         self.hosts = {}
         self.switchs = {}
@@ -528,61 +533,6 @@ class NetworkEngine:
             self.bws[host] = random.randint(20, 50)
         self.calculate_paths()
 
-        """# create components
-        for node in self.graph.nodes:
-            #host = f"H{node + 1}"
-            if node[0] == 'H':
-                #host = f"H{node[1:]}"
-                host = node
-            else:
-                continue
-            if host not in self.components:
-                #self.components[host] = NetworkComponent(host, self.communication_sequences.get(host, []))
-                self.components[host] = NetworkComponent(host, '')
-        print("hosts: ", self.components)
-
-        for edge in self.graph.edges(data=True):
-            #print("\n edge data: ", edge)
-            if edge[1][0] == 'H':
-                #dst = f"H{edge[1][1:]}"
-                dst = edge[1]
-            else:
-                continue #ignore host
-            if edge[0][0] == 'H':
-                #origin = f"H{edge[0][1:]}"
-                origin = edge[0]
-            else:
-                continue #ignore host 
-            link_bw = edge[2]['bw']
-            link = Link(origin, dst, link_bw)
-            self.components[origin].add_link(link)
-            self.components[dst].add_link(link)
-            self.links[link.get_id()] = link
-        print("\n edges: ")
-        for key, values in self.links.items():
-            print(f"{key}, {values.bw_total}")
-
-        # calculate paths
-        all_hosts = [component for component in self.components if "H" in component]
-        print("\n all hosts: ", all_hosts)
-
-        for src in all_hosts:
-            #graph_src = int(src[1:]) - 1
-            #graph_src = int(src[1:])
-            graph_src = src
-            all_dsts = [h for h in all_hosts if h != src]
-            for dst in all_dsts:
-                #graph_dst = int(dst[1:]) - 1
-                #graph_dst = int(dst[1:])
-                graph_dst = dst
-                print("\n graph topology: ", self.graph)
-                self.paths[(src, dst)] = self.k_shortest_paths(self.graph, graph_src, graph_dst, 5)
-                self.components[src].set_active_path(dst, 0)
-        #print("\n paths", self.paths)
-        for key, values in self.paths.items():
-            print(f"{key}, {values}")
-        """
-
         #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0}
@@ -593,8 +543,9 @@ class NetworkEngine:
         #                        len(self.graph_topology.edges(host)) == 1]  
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         
-        self.all_tms = generate_traffic_sequence_intranet(self)
-        
+        generate_traffic_sequence_intranet(self)
+
+        self.all_tms = json.load(open("tms_service_provider.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
@@ -626,12 +577,16 @@ def generate_traffic_sequence_intranet(network=None):
     hosts = network.get_all_hosts()
     bws = {}
     communications = {}
+    all_communications = []
 
     start = ['H8', 'H22', 'H39', 'H57']
     end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
 
+    with open("tms_service_provider.json", "w") as file:
+        file.write("")
+    
     for j in range(100):
-        communications[j] = {}
+        #communications[j] = {}
         for host in hosts:
         #for host in start:
             #print("\n host: ", host)
@@ -640,12 +595,17 @@ def generate_traffic_sequence_intranet(network=None):
                 dst = network.get_random_dst(host, hosts)
                 #dst = random.choice(end)
                 #print("\n dst: ", dst)
-                dsts = communications[j].get(host, [])
+                dsts = communications.get(host, [])
                 #print("\n dsts: ", dsts)
                 dsts.append(dst)
-                communications[j][host] = dsts
+                communications[host] = dsts
             #print("communications host: ", communications[j][host])
         #print("communications host: ", communications[j])
+        json.dump(communications, open("tms_service_provider.json", "a"), indent=4)
+
     #print("\n comunications: ", communications)
     #print("\n bws: ", bws)
+
+    #json.dump(communications, open("tms_service_provider.json", "a"), indent=4)
+
     return  communications

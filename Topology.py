@@ -69,9 +69,10 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
 
 print("\n nodes: ", G.nodes())
 print("\n edges: ", G.edges(data=True))
+print("\n Original", G)
 nx.draw(G, with_labels=True)
 
-pickle.dump(G, open("intranet_network.pickle", "wb"))
+#pickle.dump(G, open("intranet_network.pickle", "wb"))
 
 plt.show()
 

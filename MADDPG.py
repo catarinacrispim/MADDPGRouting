@@ -13,7 +13,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE
 
 
 class MADDPG:
@@ -184,7 +184,7 @@ if __name__ == '__main__':
         learning = "test"
     else:
         learning = "train"
-    path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}'
+    path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
     os.mkdir(path)
 
     graph_y_axis = np.zeros(NR_EPOCHS)
@@ -201,7 +201,6 @@ if __name__ == '__main__':
     experience_pck_lost = 0
     experience_pck_sent = 0
 
-    #print(all_hosts[10])
     #nr_trains = 1
 
     #nr_epochs = NR_EPOCHS if not evaluate else 4
@@ -213,8 +212,7 @@ if __name__ == '__main__':
         nr_epochs = 2
     elif evaluate and MODIFIED_NETWORK == "intranet":
         nr_epochs = 2
-    elif evaluate and MODIFIED_NETWORK == "real":
-        nr_epochs = 2
+
 
     percentage = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
@@ -227,29 +225,10 @@ if __name__ == '__main__':
 
         if MODIFIED_NETWORK == "bw" and evaluate and epoch != 0:
             eng.set_different_topology_bw(epoch)
-
         elif MODIFIED_NETWORK == "edges" and evaluate and epoch != 0:
             eng.set_different_topology_edges()
-
         elif MODIFIED_NETWORK == "intranet" and evaluate and epoch != 0:
             eng.set_different_topology_intranet()
-        
-        elif MODIFIED_NETWORK == "real" and evaluate and epoch != 0:
-            eng.set_different_topology_real_topology()
-            all_hosts = eng.get_all_hosts()
-            agent_dims = [STATE_SIZE for host in all_hosts]
-            agent_dim = STATE_SIZE
-            critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
-            maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
-                                fa1=10, fa2=80, fc1=15, fc2=80,
-                                alpha=0.0001, beta=0.0001, tau=0.0001,
-                                chkpt_dir='.\\tmp\\maddpg\\')
-
-            memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims,
-                                            n_action, NUMBER_OF_AGENTS, batch_size=100)
-            maddpg_agents.load_checkpoint()
-            
-
 
         episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
         available_bw_episode = np.zeros(episode_size)
@@ -258,7 +237,6 @@ if __name__ == '__main__':
             env.reset(new_tm)
 
             episode_reward = 0
-
             total_reward = 0
             total_package_loss = 0
             total_packets_sent = 0
@@ -433,7 +411,7 @@ if __name__ == '__main__':
         ### epoch ends
 
     ##Data text file
-    data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
     if evaluate:
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
@@ -463,8 +441,8 @@ if __name__ == '__main__':
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
-        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-        np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.legend()
         plt.show()
     elif evaluate:
