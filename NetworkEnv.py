@@ -29,6 +29,7 @@ class NetworkEnv(Env):
         self.state = np.full((NUMBER_OF_HOSTS, NUMBER_OF_HOSTS, NUMBER_OF_PATHS, 1), 100, dtype=np.float32)
 
     def step(self, actions: dict):
+        #print("\n actions: ", actions.items())
 
         for host, dsts in actions.items():
             self.engine.set_active_path(host, dsts)

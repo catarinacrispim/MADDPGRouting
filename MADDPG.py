@@ -77,27 +77,14 @@ class MADDPG:
         for idx, agent in enumerate(self.agents):
             with T.no_grad():
                 future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
-                                                                                   idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
+                                                        idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
 
+                #print("\n ", reward_obtained[:, idx].shape())
+                asd = (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
                 expected_value = reward_obtained[:, idx] + (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
-                """if NEURAL_NETWORK == "duelling_q_network":
-                    future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
-                                                                                     idx * self.n_actions:idx * self.n_actions + self.n_actions])
-                    print("\n\n\n reward obtained: ", reward_obtained[:, idx])
-                    print(np.shape(reward_obtained[:, idx]))
-                    print("\n future critic value: ",future_critic_value)
-                    print(np.shape(future_critic_value))
-                    print("\n future critic value agent: ",future_critic_value[:,idx])
-                    print(np.shape(future_critic_value[:,idx]))
-                    expected_value = reward_obtained[:, idx] +                                                                     (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value[:,idx]
-                elif NEURAL_NETWORK == "simple_q_network":
-                    future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
-                                                                                     idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
-                    expected_value = reward_obtained[:, idx] + (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
-                """
 
             present_critic_value = agent.critic.forward(current_state[idx], combined_old_actions[:,
-                                                                            idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
+                                                        idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
 
             critic_loss = F.mse_loss(expected_value, present_critic_value)
             agent.critic.optimizer.zero_grad()
@@ -107,10 +94,9 @@ class MADDPG:
             current_actor_input = T.tensor(actor_input[idx], dtype=T.float).to(processing_device)
             combined_old_actions_clone = combined_old_actions.clone()
             combined_old_actions_clone[:,
-            idx * self.n_actions:idx * self.n_actions + self.n_actions] = agent.actor.forward(
-                current_actor_input)
+            idx * self.n_actions:idx * self.n_actions + self.n_actions] = agent.actor.forward(current_actor_input)
             actor_loss = -T.mean(agent.critic.forward(current_state[idx], combined_old_actions_clone[:,
-                                                                          idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten())
+                                                      idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten())
             agent.actor.optimizer.zero_grad()
             actor_loss.backward(retain_graph=True)
             agent.actor.optimizer.step()
@@ -135,6 +121,7 @@ if __name__ == '__main__':
     agents = eng.get_all_hosts()
     all_hosts = eng.get_all_hosts()
 
+    agent_dim = STATE_SIZE
     agent_dims = [STATE_SIZE for host in all_hosts]
 
     GAMMA = 0.99
@@ -144,16 +131,16 @@ if __name__ == '__main__':
     REPLAY_MEMORY = 50000
     BATCH = 256
 
-    agent_dim = STATE_SIZE
-
     if CRITIC_DOMAIN == "central_critic":
         critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS
+        critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
         #critic = eng.get_link_usage()
     elif CRITIC_DOMAIN == "local_critic":
-        critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
+        #critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
         #critic = state
+        critic_dims = [STATE_SIZE for host in all_hosts]
 
-    critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
+    #critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
                            fa1=10, fa2=80, fc1=15, fc2=80,
@@ -190,12 +177,9 @@ if __name__ == '__main__':
     graph_y_axis = np.zeros(NR_EPOCHS)
     graph_x_axis = np.zeros(NR_EPOCHS)
 
-    evaluate = EVALUATE
-
-    if evaluate:
+    if EVALUATE:
         maddpg_agents.load_checkpoint()
 
-    all_rewards = []
     packet_loss_evaluate = []
     packet_sent_evaluate = []
     experience_pck_lost = 0
@@ -204,15 +188,15 @@ if __name__ == '__main__':
     #nr_trains = 1
 
     #nr_epochs = NR_EPOCHS if not evaluate else 4
-    if not evaluate:
+    if not EVALUATE:
         nr_epochs = NR_EPOCHS
-    elif evaluate and MODIFIED_NETWORK == "bw":
-        nr_epochs = 4
-    elif evaluate and MODIFIED_NETWORK == "edges":
-        nr_epochs = 2
-    elif evaluate and MODIFIED_NETWORK == "intranet":
-        nr_epochs = 2
-
+    else:
+        if MODIFIED_NETWORK == "bw":
+            nr_epochs = 4
+        elif MODIFIED_NETWORK == "edges":
+            nr_epochs = 2
+        elif MODIFIED_NETWORK == "intranet":
+            nr_epochs = 2
 
     percentage = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
@@ -223,15 +207,17 @@ if __name__ == '__main__':
         total_epoch_pck_sent = 0
         #print("Epoch: ", epoch)
 
-        if MODIFIED_NETWORK == "bw" and evaluate and epoch != 0:
-            eng.set_different_topology_bw(epoch)
-        elif MODIFIED_NETWORK == "edges" and evaluate and epoch != 0:
-            eng.set_different_topology_edges()
-        elif MODIFIED_NETWORK == "intranet" and evaluate and epoch != 0:
-            eng.set_different_topology_intranet()
+        if EVALUATE and epoch != 0:
+            if MODIFIED_NETWORK == "bw": #and EVALUATE and epoch != 0:
+                eng.set_different_topology_bw(epoch)
+            elif MODIFIED_NETWORK == "edges": #and EVALUATE and epoch != 0:
+                eng.set_different_topology_edges()
+            elif MODIFIED_NETWORK == "intranet": #and EVALUATE and epoch != 0:
+                eng.set_different_topology_intranet()
 
-        episode_size = EPOCH_SIZE if not evaluate else EPOCH_SIZE * 2
+        episode_size = EPOCH_SIZE if not EVALUATE else EPOCH_SIZE * 2
         available_bw_episode = np.zeros(episode_size)
+        
         for e in range(episode_size):
             new_tm = e % 2 == 0
             env.reset(new_tm)
@@ -241,11 +227,12 @@ if __name__ == '__main__':
             total_package_loss = 0
             total_packets_sent = 0
             available_bw_time_steps = np.zeros(100)
+            
             for time_steps in range(100):
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
-                # print("next dsts", next_dsts)
+                #print("next dsts", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -276,35 +263,28 @@ if __name__ == '__main__':
 
                     if CRITIC_DOMAIN == "central_critic":
                         critic = eng.get_link_usage()
-                        #print("\n1 link usage: ", critic)
+                        #print("\n (central critic) link usage: ", critic)
+                        #print("\n (destino atual) all dsts: ",np.array(all_dsts))
+                        critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
                     elif CRITIC_DOMAIN == "local_critic":
-                        critic = state.reshape(33)
+                        #critic = state.reshape(33)
+                        #critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
+                        critic_states = states
                 
-                    """print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-                    print("\n shape states ", np.shape(states))
-                    print(states)
-                    print("\n shape state after changes ", np.shape(states))
-                    print(np.array(states)[0])
-                    print("\n shape state ", np.shape(state))
-                    print(state)
-                    print("\n shape all dsts ", np.shape(np.array(all_dsts)))
-                    print(np.array(all_dsts))
-                    print("\n shape get link usage ", np.shape(eng.get_link_usage))"""
                     #print("\n\n", state)
                     #print("\n shape state ", np.shape(state))
                     #print(state.reshape(33))
 
-                    critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
+                    #critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
 
                 actions = maddpg_agents.choose_action(states)
                 #print("\n actions: ", actions)
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
-                    index = index % NUMBER_OF_AGENTS             #allow for scalability while working with 25 agents
                     if next_dsts.get(host, ''):
 
-                        prob = -1 if evaluate else max(0.1, (0.3 - 0.0001 * epoch))
+                        prob = -1 if EVALUATE else max(0.1, (0.3 - 0.0001 * epoch))
 
                         if random.random() < prob:
                             action = random.randint(0, 2)
@@ -321,20 +301,21 @@ if __name__ == '__main__':
 
                 #print("\nstep: ", next_states, rewards, done, _)
 
-                new_next_states = np.empty((25, agent_dim), dtype=np.double)
+                #new_next_states = np.empty((25, agent_dim), dtype=np.double)
+                new_next_states = np.empty((NUMBER_OF_AGENTS, agent_dim), dtype=np.double)
 
                 if CRITIC_DOMAIN == "central_critic":
-                    critic = eng.get_link_usage()
-                    #print("\n2 link usage: ", critic)
-                elif CRITIC_DOMAIN == "local_critic":
-                    critic = state.reshape(33)
-
-                #print("\n eng_get link usage:", eng.get_link_usage())    
-                #print("\n state:", state)
-                all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
+                    all_critic_new_states = [np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
+                elif CRITIC_DOMAIN == "local_critic":
+                    #critic = state.reshape(33)
+                    all_critic_new_states = states
+
+                #all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
+                                         #range(NUMBER_OF_AGENTS)]
 
                 #print("\n all critic new states: ", all_critic_new_states)
+                
                 new_next_states = []
                 for index, host in enumerate(all_hosts):
                     # means it add an action
@@ -352,7 +333,6 @@ if __name__ == '__main__':
                     else:
                         actions.append(actions_dict[host][next_dsts[host]])
 
-                
                 memory.store_transition(states, actions, rewards, new_next_states, done, critic_states,
                                         all_critic_new_states)
 
@@ -360,7 +340,8 @@ if __name__ == '__main__':
 
                 available_bw_time_steps[time_steps] = np.average(eng.get_link_usage())
 
-                total_reward += sum(rewards) / 25
+                #total_reward += sum(rewards) / 25
+                total_reward += sum(rewards) / NUMBER_OF_AGENTS
                 total_package_loss += eng.statistics['package_loss']
                 total_packets_sent += eng.statistics['package_sent']
                 if done:
@@ -369,41 +350,44 @@ if __name__ == '__main__':
 
             available_bw_episode[e] = np.average(available_bw_time_steps)
             
+            ## DATA
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
-            print("Total reward", total_reward)
-            print("Total package loss", total_package_loss)
+            #print("Total reward", total_reward)
+            #print("Total package loss", total_package_loss)
             print(" ")
 
-            if e % 3 == 0 and not evaluate:
+            if e % 3 == 0 and not EVALUATE:
                 maddpg_agents.learn(memory)
 
             total_epoch_reward += total_reward
-            total_epoch_pck_loss += eng.statistics['package_loss']
-            total_epoch_pck_sent += eng.statistics['package_sent']
-            experience_pck_lost = total_epoch_pck_loss
-            experience_pck_sent = total_epoch_pck_sent
+            total_epoch_pck_loss += total_package_loss
+            total_epoch_pck_sent += total_packets_sent
+            experience_pck_lost += total_epoch_pck_loss
+            experience_pck_sent += total_epoch_pck_sent
             # print(f"STATISTICS OG {eng.statistics}")
 
             total_rewards.append(total_reward)
-            all_rewards.append(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
             ### episode ends
 
         print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
-        graph_y_axis[epoch] = total_epoch_reward
+        graph_y_axis[epoch] = total_epoch_reward / episode_size
+        ##average
+        #graph_y_axis[epoch] = sum(total_rewards) / len(total_rewards) ####
 
         if epoch % 30 == 0:
             print(f"AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
             total_rewards = []
 
-            if not evaluate:
+            if not EVALUATE:
                 maddpg_agents.save_checkpoint()
                 print("SAVING")
 
         print(total_epoch_pck_loss)
-        if evaluate:
+
+        if EVALUATE:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
             percentage[epoch] = round(((total_epoch_pck_loss/total_epoch_pck_sent)*100), 2)
@@ -412,7 +396,7 @@ if __name__ == '__main__':
 
     ##Data text file
     data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
-    if evaluate:
+    if EVALUATE:
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
@@ -420,19 +404,13 @@ if __name__ == '__main__':
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
-        """data_file.write(f"Packets lost Modified network (1): {percentage[1]}% \n")
-        data_file.write(f"Available bandwidth (1): {available_bw_epoch[1]}% \n\n")
-        data_file.write(f"Packets lost Modified network (2): {percentage[2]}% \n")
-        data_file.write(f"Available bandwidth (2): {available_bw_epoch[2]}% \n\n")
-        data_file.write(f"Packets lost Modified network (3): {percentage[3]}% \n")
-        data_file.write(f"Available bandwidth (3): {available_bw_epoch[3]}% \n\n")"""
-    elif not evaluate:
+    else:
         data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
         data_file.write(f"{NOTES}\n")
     data_file.close    
 
     ## Build graph
-    if not evaluate:
+    if not EVALUATE:
         graph_x_axis = np.arange(0, NR_EPOCHS)
         if CRITIC_DOMAIN == "central_critic":
             plt.title(f"Total reward per epoch - central critic")
@@ -445,6 +423,6 @@ if __name__ == '__main__':
         np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.legend()
         plt.show()
-    elif evaluate:
+    else:
         pass
     

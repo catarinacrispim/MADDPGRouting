@@ -87,17 +87,18 @@ class CriticNetwork(nn.Module):
         self.chkpt_file = f'/home/student/agent_files/{self.file_name}'
         self.load_file = f'/home/student/agent_files/{load_file}.sync'
 
-        self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
+        self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims) #.float()
         #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims)
-        #self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
+        self.fc2 = nn.Linear(fc1_dims, fc2_dims) ## hidden layer 1
         #self.q = nn.Linear(fc1_dims, 1)
 
         if NEURAL_NETWORK == "duelling_q_network":
             #self.fc2 = nn.Linear(fc1_dims, fc2_dims)
-            self.q = nn.Linear(fc1_dims, 1)
-            self.q_values = nn.Linear(fc1_dims, n_actions)       ##output
+            self.q = nn.Linear(fc2_dims, 1)                 
+            self.q_values = nn.Linear(fc2_dims, n_actions)       #advantage
+            self.output = nn.Linear(n_actions, 1)
         elif NEURAL_NETWORK == "simple_q_network":
-            self.q = nn.Linear(fc1_dims, 1)                           #1 dimention output
+            self.q = nn.Linear(fc2_dims, 1)                           #1 dimention output
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -111,26 +112,36 @@ class CriticNetwork(nn.Module):
 
         if NEURAL_NETWORK == "duelling_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
-            #x = F.relu(self.fc2(x)) ##
-            value = self.q(x)
-
-            q_values = T.softmax(self.q_values(x), dim=1)
+            x = F.relu(self.fc2(x)) ##
+            value = self.q(x)   #output 1
+            q_values = T.softmax(self.q_values(x), dim=1)  #adavtage
             #q_values = self.q_values(q_values)
 
             average = T.mean(q_values, dim = 1, keepdim=True)
-
             q = value + (q_values - average)         #q = value + (q_value - average q values)
-            print("\n value: ", value)
-            print("\n q values: ", q_values)
-            print("\n average: ", average)
-            print("\n q: ", q)
-        
+
+            q = self.output(q)  ##verificar
+            #print("\n value: ", value)
+            #print("\n q values: ", q_values)
+            #print("\n average: ", average)
+            #print("\n dueling q network q: ", q)
+            #print("\n shape: ", q.shape)
+
+            #q , _= T.max(q, dim=1, keepdim=True)
+            #print("\n dueling q network q: ", q)
+            #print("\n shape: ", q.shape)
+            #return value
+
         elif NEURAL_NETWORK == "simple_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
-            #x = F.relu(self.fc2(x)) ##
+            x = F.relu(self.fc2(x)) ##
             q = self.q(x)
-
+            #print("\n simple q network q: ", q)
+            #print("\n shape: ", q.shape)
+    
         return q
+
+
 
     def save_checkpoint(self):
         T.save(self.state_dict(), self.chkpt_file)
@@ -150,7 +161,7 @@ class ActorNetwork(nn.Module):
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
-        self.pi = nn.Linear(fc1_dims, n_actions)
+        self.pi = nn.Linear(fc2_dims, n_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')

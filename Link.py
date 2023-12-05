@@ -23,10 +23,16 @@ class Link:
         self.bw_used += used_bw
 
     def get_bw_available_percentage(self):
-        return self.bw_available / self.bw_total * 100
+        if self.bw_total == 0:
+            return 0
+        else:
+            return self.bw_available / self.bw_total * 100
 
     def add_active_communication(self, origin, destiny, bw):
         self.active_connections[(origin, destiny)] = bw
 
     def get_active_communication(self, origin, destiny):
         return self.active_connections.get((origin, destiny), 0)
+    
+    def saturate_link(self):
+        self.bw_available = 0

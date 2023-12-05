@@ -14,9 +14,10 @@ G = nx.Graph(graph)
 print("\n Original", G)
 print("nodes: ", G.nodes())
 print("edges: ", G.edges())
-plt.subplot(1,3,1)
+#plt.subplot(1,3,1)
 plt.title("Original")
 nx.draw(G, with_labels=True)
+
 
 H = nx.barabasi_albert_graph(25, 2)
 print("\n barabasi_albert_graph", H)

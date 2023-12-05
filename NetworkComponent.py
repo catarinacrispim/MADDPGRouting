@@ -59,13 +59,17 @@ class NetworkComponent:
         bws = []
 
         for neighbor in self.neighbors:
+            #print("\n for ", neighbor, "in ", self.neighbors)
 
             link = self.links.get((self.id, neighbor), None)
 
             if not link:
                 link = self.links.get((neighbor, self.id), None)
 
+            #print("\n link: ", link)
+
             bws.append(link.get_bw_available_percentage())
+        #print("\n bws: ", bws)
         return min(bws)
 
     def add_neighbor(self, host):

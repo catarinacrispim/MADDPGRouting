@@ -15,12 +15,18 @@ print("\n Original", G)
 print("nodes: ", G.nodes())
 print("edges: ", G.edges())
 
+#for edge in G.edges(data=True):
+#    print(f"\n edge: {[edge[:2]]}, data {[edge[2]]}")
+
 plt.subplot(1,2,1)
 plt.title("Original")
 nx.draw(G, with_labels=True)
 
-edges = list(G.edges())
-remove = random.sample(edges, 4)
+high_degree_nodes = [node for node in G.nodes() if G.degree(node)>1]
+#edges = list(G.edges())
+edges = [edge for node in high_degree_nodes for edge in G.edges(node)]
+
+remove = random.sample(edges, min(5, len(edges)))
 
 for edge in remove:
     print("removing edge: ", edge)

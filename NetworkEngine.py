@@ -16,6 +16,7 @@ from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUA
 class NetworkEngine:
 
     def __init__(self):
+        self.graph_has_data = False
 
         if TOPOLOGY_TYPE == "service_provider":
             self.set_service_provider_topology()
@@ -26,7 +27,6 @@ class NetworkEngine:
         self.hosts = {}
         self.switchs = {}
         self.components = {}
-        self.graph_data = False
 
         # self.graph_topology = nx.random_internet_as_graph(50)
 
@@ -75,7 +75,7 @@ class NetworkEngine:
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
                                  len(self.graph_topology.edges(host)) == 1]
 
-        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        ##self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         #print(self.bws)
         #print(self.single_con_hosts)
 
@@ -101,8 +101,6 @@ class NetworkEngine:
         self.get_state("H1", 2)
         """
 
-        #print("YES")
-
     def create_components(self, graph: nx.Graph):
         for node in graph.nodes:
             host = f"H{node + 1}"
@@ -113,7 +111,9 @@ class NetworkEngine:
         for edge in graph.edges(data=True):
             dst = f"H{edge[1] + 1}"
             origin = f"H{edge[0] + 1}"
-            if self.graph_data:
+            #if self.graph_has_data:
+            #if isinstance(edge[2]['bw'], int):
+            if 'bw' in edge[2]:
                 link_bw = edge[2]['bw']
                 link = Link(origin, dst, link_bw)
             else:
@@ -122,11 +122,11 @@ class NetworkEngine:
             self.components[dst].add_link(link)
             self.links[link.get_id()] = link
         #print("\n edges: ")
+        #print("")
         #for key, values in self.links.items():
         #    print(f"{key}, {values.bw_total}")
 
     def build_graph(self):
-
         for component in self.components.values():
             self.graph_topology.add_node(component.id)
 
@@ -159,7 +159,7 @@ class NetworkEngine:
             self.current_tm_index += 1
             self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
 
-        # print("new ", self.communication_sequences)
+        #print("new tm: ", self.communication_sequences)
         self.create_components(self.graph_topology)
         # self.read_topology("topology_arpanet.txt")
         # self.build_graph()
@@ -199,8 +199,6 @@ class NetworkEngine:
         #print("\n all hosts: ", all_hosts)
 
         for src in all_hosts:
-            if src == 'H31':
-                print("")
             graph_src = int(src[1:]) - 1
             all_dsts = [h for h in all_hosts if h != src]
             for dst in all_dsts:
@@ -230,7 +228,8 @@ class NetworkEngine:
     def get_random_dst(self, origin, all_dsts):
 
         while True:
-            dst = random.choice(all_dsts + ['', '', '', '', ''])
+            #dst = random.choice(all_dsts + ['', '', '', '', ''])
+            dst = random.choice(all_dsts)
             if dst != origin:
                 return dst
 
@@ -248,12 +247,8 @@ class NetworkEngine:
 
                 h.active_dst = dst
                 path_id = h.get_active_path(dst)
-                if host == 'H8' and self.graph_data:
-                    print("")
-                if path_id is None or path_id == 0  and self.graph_data:
-                    print("\n null")
                 self.simulate_communication(host, dst, path_id, self.bws[host], 2)
-                print(f"\n SENDING FROM {host} to {dst}")
+                #print(f"\n SENDING FROM {host} to {dst}")
             else:
                 h.update_communication()
                 # means the communication is finished
@@ -320,7 +315,7 @@ class NetworkEngine:
             if not update_bw:
                 link.add_active_communication(origin, destiny, bw)
 
-            if link.bw_available < 0 and not update_bw:
+            if link.bw_available < 0 and not update_bw:  ##changes from < to <=
                 self.statistics["package_loss"] += -1 * link.bw_available
                 bw += link.bw_available
                 bw = max(1, bw)
@@ -328,10 +323,10 @@ class NetworkEngine:
         if not update_bw:
             self.statistics["package_sent"] += bw
             c = self.components[origin]
-            #if initial_bw == 0: ##
-            #    c.bw_pct = 0
-            #else:
-            c.bw_pct = (bw / initial_bw)
+            if initial_bw == 0: ##
+                c.bw_pct = 0
+            else:
+                c.bw_pct = (bw / initial_bw)
         else:
             c = self.components[origin]
             c.bw_pct = 0
@@ -451,41 +446,70 @@ class NetworkEngine:
         self.statistics = {'package_loss': 0, 'package_sent': 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
                                  len(self.graph_topology.edges(host)) == 1]   
-        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         self.all_tms = json.load(open("all_tms_test.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
     
     
-    def set_different_topology_bw(self, mod):
-        #this approach simulates unavailable routers by seting the available bw with -10
+    def set_different_topology_bw(self, mod):    
         if mod == 1:
-            self.bws = {'H1': -10, 'H2': 28, 'H3': 22, 'H4': 28, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': 24, 'H12': -10, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
-                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': -10, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': 21, 'H30': 24, 'H31': 32, 'H32': 50, 'H33': 31, 'H34': -10, 'H35': 49, 'H36': 31, 'H37': 34,
-                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': -10, 'H46': 43,
-                    'H47': 41, 'H48': 24, 'H49': 30, 'H50': 33}
+            nr_links_changed = 1
         elif mod == 2:
-            self.bws = {'H1': 29, 'H2': 28, 'H3': -10, 'H4': 28, 'H5': 33, 'H6': -10, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': -10, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': 26, 'H17': 48, 'H18': 49, 'H19': 50,
-                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': 21, 'H30': 24, 'H31': -10, 'H32': 50, 'H33': 31, 'H34': 32, 'H35': 49, 'H36': 31, 'H37': 34,
-                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': 34, 'H45': 34, 'H46': 43,
-                    'H47': -10, 'H48': 24, 'H49': 30, 'H50': -10}
+            nr_links_changed = 2
         elif mod == 3:
-            self.bws = {'H1': 29, 'H2': 28, 'H3': 22, 'H4': -10, 'H5': 33, 'H6': 40, 'H7': 34, 'H8': 29, 'H9': 42, 'H10': 21,
-                    'H11': 24, 'H12': 42, 'H13': 34, 'H14': 31, 'H15': 22, 'H16': -10, 'H17': 48, 'H18': 49, 'H19': -10,
-                    'H20': 36, 'H21': 34, 'H22': 36, 'H23': 33, 'H24': 24, 'H25': 46, 'H26': 38, 'H27': 38, 'H28': 45,
-                    'H29': -10, 'H30': 24, 'H31': 32, 'H32': -10, 'H33': 31, 'H34': 32, 'H35': -10, 'H36': 31, 'H37': 34,
-                    'H38': 47, 'H39': 49, 'H40': 29, 'H41': 26, 'H42': 37, 'H43': 28, 'H44': -10, 'H45': 34, 'H46': 43,
-                    'H47': 41, 'H48': -10, 'H49': 30, 'H50': 33}
+            nr_links_changed = 3
+
+        #this approach changes link bw to 0, to simulate busy paths
+        self.graph_topology = nx.Graph(pickle.load(open('small_network.pickle', 'rb')))
+        edges = []
+        change = []
+        for edge in self.graph_topology.edges():
+            n1, n2 = edge
+            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
+                edges.append(edge)
+        change = random.sample(edges, min(nr_links_changed, len(edges)))
+        for edge in change:
+            print("changing edge: ", edge)
+            self.graph_topology.remove_edge(*edge)
+            u, v = edge
+            self.graph_topology.add_edge(u, v, bw = 0)
+        
+        #print("\n Modified", self.graph_topology)
+        #print("\n edges: ", self.graph_topology.edges(data=True))
         self.setup()
 
     def set_different_topology_edges(self):
         #this approach eliminates edges from the network, number of routers stays the same
-        self.graph_topology = pickle.load(open('network_edges_change.pickle', 'rb'))
+        #self.graph_topology = pickle.load(open('network_edges_change.pickle', 'rb'))
+
+        #graph_to_change = pickle.load(open('small_network.pickle', 'rb'))
+        #G = nx.Graph(self.graph_topology)
+        print("\n Original", self.graph_topology)
+        print("nodes: ", self.graph_topology.nodes())
+        print("edges: ", self.graph_topology.edges())
+        #high_degree_nodes = [node for node in self.graph_topology.nodes() if self.graph_topology.degree(node)>1]
+        #edges = list(G.edges())
+        #edges = [edge for node in high_degree_nodes for edge in self.graph_topology.edges(node)]
+        edges = []
+        remove = []
+
+        for edge in self.graph_topology.edges():
+            n1, n2 = edge
+            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
+                edges.append(edge)
+        
+        remove = random.sample(edges, min(4, len(edges)))
+        
+        for edge in remove:
+            print("removing edge: ", edge)
+            self.graph_topology.remove_edge(*edge)
+        
+        print("\n Modified", self.graph_topology)
+        print("nodes: ", self.graph_topology.nodes())
+        print("edges: ", self.graph_topology.edges())
+
         self.setup()
 
     def set_different_topology_intranet(self):
@@ -524,26 +548,22 @@ class NetworkEngine:
                                         'H64': ['H55', 'H20', 'H12', 'H40', 'H29', '', 'H20', 'H28', 'H15', 'H61', '', 'H6', 'H1', 'H2', 'H29', '', 'H28', 'H26', 'H42', 'H1', 'H24', 'H41', '', 'H41', 'H49', 'H7', 'H18', 'H30', 'H25', '']
                                         }
         self.all_tms = {}
-        self.graph_data = True
+        self.graph_has_data = True
         
         self.graph_topology = pickle.load(open("intranet_network.pickle", "rb"))
         self.create_components(self.graph_topology) #creates nodes and edges
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
-            self.bws[host] = random.randint(20, 50)
+            self.bws[host] = random.randint(10, 25)
         self.calculate_paths()
 
         #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0}
-        #self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph if 
-                               # len(self.graph.edges(host)) == 1]  
         self.single_con_hosts = {}
-        #self.single_con_hosts = [host for host in self.graph_topology if 
-        #                        len(self.graph_topology.edges(host)) == 1]  
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         
-        generate_traffic_sequence_intranet(self)
+        #generate_traffic_sequence_service_provider(self)
 
         self.all_tms = json.load(open("tms_service_provider.json", mode="r"))
         self.current_index = 0
@@ -571,21 +591,18 @@ def generate_traffic_sequence(network=None):
     print("\n bws: ", bws)
     return  communications
 
-def generate_traffic_sequence_intranet(network=None):
+def generate_traffic_sequence_service_provider(network=None):
     if not network:
       network = NetworkEngine()
     hosts = network.get_all_hosts()
     bws = {}
     communications = {}
-    all_communications = []
+    list_all_communications = []
 
     start = ['H8', 'H22', 'H39', 'H57']
     end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
-
-    with open("tms_service_provider.json", "w") as file:
-        file.write("")
     
-    for j in range(100):
+    for j in range(10):
         #communications[j] = {}
         for host in hosts:
         #for host in start:
@@ -599,13 +616,14 @@ def generate_traffic_sequence_intranet(network=None):
                 #print("\n dsts: ", dsts)
                 dsts.append(dst)
                 communications[host] = dsts
-            #print("communications host: ", communications[j][host])
-        #print("communications host: ", communications[j])
-        json.dump(communications, open("tms_service_provider.json", "a"), indent=4)
+                #print("communications host: ", communications[j][host])
+            #print("communications host: ", communications[j])
+        list_all_communications.append(communications)
+        communications = {}
 
     #print("\n comunications: ", communications)
     #print("\n bws: ", bws)
 
-    #json.dump(communications, open("tms_service_provider.json", "a"), indent=4)
+    json.dump(list_all_communications, open("tms_service_provider.json", "w"), indent=4)
 
     return  communications

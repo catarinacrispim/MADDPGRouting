@@ -34,7 +34,10 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
                  continue
             if not G.has_node(node):
                 G.add_node(node)
-        bw = int(data[2])/10
+        
+        #bw = int(data[2])/10
+        bw = int(data[2])
+
         if nodes[0][0] == 'S':
                 #nodes[0] = f"H{nodes[0][1:]}"
                 nodes[0] = int(nodes[0][1:]) - 1
