@@ -93,12 +93,11 @@ class CriticNetwork(nn.Module):
         #self.q = nn.Linear(fc1_dims, 1)
 
         if NEURAL_NETWORK == "duelling_q_network":
-            #self.fc2 = nn.Linear(fc1_dims, fc2_dims)
             self.q = nn.Linear(fc2_dims, 1)                 
-            self.q_values = nn.Linear(fc2_dims, n_actions)       #advantage
+            self.q_values = nn.Linear(fc2_dims, n_actions)      #advantage
             self.output = nn.Linear(n_actions, 1)
         elif NEURAL_NETWORK == "simple_q_network":
-            self.q = nn.Linear(fc2_dims, 1)                           #1 dimention output
+            self.q = nn.Linear(fc2_dims, 1)                     #1 dimention output
 
         self.optimizer = optim.Adam(self.parameters(), lr=beta)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -106,21 +105,19 @@ class CriticNetwork(nn.Module):
         self.to(self.device)
 
     def forward(self, state, action):
-        #x = F.relu(self.fc1(T.cat([state, action], dim=1)))
-        #x = F.relu(self.fc2(x)) ##
-        #q = self.q(x)
-
         if NEURAL_NETWORK == "duelling_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
             x = F.relu(self.fc2(x)) ##
             value = self.q(x)   #output 1
-            q_values = T.softmax(self.q_values(x), dim=1)  #adavtage
-            #q_values = self.q_values(q_values)
-
+            
+            q_values = T.softmax(self.q_values(x), dim=1)  
             average = T.mean(q_values, dim = 1, keepdim=True)
-            q = value + (q_values - average)         #q = value + (q_value - average q values)
+            advantage_function = q_values - average
+
+            q = value + advantage_function         #q = value + (q_value - average q values)
 
             q = self.output(q)  ##verificar
+
             #print("\n value: ", value)
             #print("\n q values: ", q_values)
             #print("\n average: ", average)
@@ -130,7 +127,6 @@ class CriticNetwork(nn.Module):
             #q , _= T.max(q, dim=1, keepdim=True)
             #print("\n dueling q network q: ", q)
             #print("\n shape: ", q.shape)
-            #return value
 
         elif NEURAL_NETWORK == "simple_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
@@ -140,8 +136,6 @@ class CriticNetwork(nn.Module):
             #print("\n shape: ", q.shape)
     
         return q
-
-
 
     def save_checkpoint(self):
         T.save(self.state_dict(), self.chkpt_file)

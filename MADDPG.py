@@ -79,8 +79,6 @@ class MADDPG:
                 future_critic_value = agent.target_critic.forward(future_state[idx], combined_new_actions[:,
                                                         idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten()
 
-                #print("\n ", reward_obtained[:, idx].shape())
-                asd = (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
                 expected_value = reward_obtained[:, idx] + (1 - done_flags[:, 0].int()) * agent.gamma * future_critic_value
 
             present_critic_value = agent.critic.forward(current_state[idx], combined_old_actions[:,
@@ -202,7 +200,7 @@ if __name__ == '__main__':
     available_bw_epoch = np.zeros(nr_epochs)
 
     for epoch in range(0, nr_epochs):
-        total_epoch_reward = 0
+        total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0
         #print("Epoch: ", epoch)
@@ -232,7 +230,6 @@ if __name__ == '__main__':
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
-                #print("next dsts", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -257,64 +254,39 @@ if __name__ == '__main__':
                         state = all_dst_states
                         base_state = all_dst_states
 
-                    #print("\n state: ", state)
                     states.append(state)
-                    #print("\n states: ", states)
 
                     if CRITIC_DOMAIN == "central_critic":
-                        critic = eng.get_link_usage()
-                        #print("\n (central critic) link usage: ", critic)
-                        #print("\n (destino atual) all dsts: ",np.array(all_dsts))
-                        critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
+                        critic_states.append(np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0))
                     elif CRITIC_DOMAIN == "local_critic":
                         #critic = state.reshape(33)
-                        #critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
-                        critic_states = states
-                
-                    #print("\n\n", state)
-                    #print("\n shape state ", np.shape(state))
-                    #print(state.reshape(33))
-
-                    #critic_states.append(np.concatenate((critic, np.array(all_dsts)), axis=0))
+                        #critic_states = states
+                        critic_states.append(state)
 
                 actions = maddpg_agents.choose_action(states)
-                #print("\n actions: ", actions)
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
                     if next_dsts.get(host, ''):
-
                         prob = -1 if EVALUATE else max(0.1, (0.3 - 0.0001 * epoch))
-
                         if random.random() < prob:
                             action = random.randint(0, 2)
                         else:
                             action = actions[index]
-
-                        if host in eng.single_con_hosts:
-                            action = 0                        #algoritmo tradicional
+                        #if host in eng.single_con_hosts:
+                        #    action = 0                        #algoritmo tradicional
 
                         actions_dict[host] = {next_dsts.get(host, ''): action}
 
-                #print("\n actions dict: ", actions_dict)
                 next_states, rewards, done, _ = env.step(actions_dict)
 
-                #print("\nstep: ", next_states, rewards, done, _)
-
-                #new_next_states = np.empty((25, agent_dim), dtype=np.double)
                 new_next_states = np.empty((NUMBER_OF_AGENTS, agent_dim), dtype=np.double)
 
                 if CRITIC_DOMAIN == "central_critic":
                     all_critic_new_states = [np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
                 elif CRITIC_DOMAIN == "local_critic":
-                    #critic = state.reshape(33)
-                    all_critic_new_states = states
-
-                #all_critic_new_states = [np.concatenate((critic, np.array(all_dsts)), axis=0) for i in
-                                         #range(NUMBER_OF_AGENTS)]
-
-                #print("\n all critic new states: ", all_critic_new_states)
+                    all_critic_new_states = next_states
                 
                 new_next_states = []
                 for index, host in enumerate(all_hosts):
@@ -340,7 +312,6 @@ if __name__ == '__main__':
 
                 available_bw_time_steps[time_steps] = np.average(eng.get_link_usage())
 
-                #total_reward += sum(rewards) / 25
                 total_reward += sum(rewards) / NUMBER_OF_AGENTS
                 total_package_loss += eng.statistics['package_loss']
                 total_packets_sent += eng.statistics['package_sent']
@@ -354,12 +325,12 @@ if __name__ == '__main__':
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
             #print("Total reward", total_reward)
             #print("Total package loss", total_package_loss)
-            print(" ")
+            #print(" ")
 
             if e % 3 == 0 and not EVALUATE:
                 maddpg_agents.learn(memory)
 
-            total_epoch_reward += total_reward
+            total_epoch_reward.append(total_reward)
             total_epoch_pck_loss += total_package_loss
             total_epoch_pck_sent += total_packets_sent
             experience_pck_lost += total_epoch_pck_loss
@@ -371,21 +342,19 @@ if __name__ == '__main__':
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
             ### episode ends
 
-        print(f"total epoch reward {total_epoch_reward}")
+        #print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
-        graph_y_axis[epoch] = total_epoch_reward / episode_size
-        ##average
-        #graph_y_axis[epoch] = sum(total_rewards) / len(total_rewards) ####
+        graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)
 
         if epoch % 30 == 0:
-            print(f"AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
+            print(f"\n AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
             total_rewards = []
 
             if not EVALUATE:
                 maddpg_agents.save_checkpoint()
                 print("SAVING")
 
-        print(total_epoch_pck_loss)
+        #print(total_epoch_pck_loss)
 
         if EVALUATE:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
