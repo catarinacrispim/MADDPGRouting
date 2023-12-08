@@ -71,7 +71,7 @@ class NetworkEngine:
         self.calculate_paths()
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
                                  len(self.graph_topology.edges(host)) == 1]
 
@@ -165,7 +165,7 @@ class NetworkEngine:
         # self.build_graph()
         # self.calculate_paths()
         self.number_of_hosts = len(self.get_all_hosts())
-        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
 
         # if new_tm:
         #  self.communication_sequences = generate_traffic_sequence(self)
@@ -282,7 +282,6 @@ class NetworkEngine:
         self.components[src].set_communication(nr_turns, bw, dst)
 
     def update_bw_path(self, path, bw):
-
         origin = path[0]
         destiny = path[-1]
         initial_bw = bw
@@ -308,20 +307,23 @@ class NetworkEngine:
             link = src.get_link(dst.id)
 
             if update_bw:
+                #get communication bw
                 bw = -1 * link.get_active_communication(origin, destiny)
 
-            link.update_bw(bw)
+            link.update_bw(bw)    #subtracts 'bw' from link
 
             if not update_bw:
                 link.add_active_communication(origin, destiny, bw)
 
-            if link.bw_available < 0 and not update_bw:  ##changes from < to <=
+            if link.bw_available < 0 and not update_bw:  
                 self.statistics["package_loss"] += -1 * link.bw_available
+                self.statistics["nr_package_lost"] += 1
                 bw += link.bw_available
                 bw = max(1, bw)
 
         if not update_bw:
             self.statistics["package_sent"] += bw
+            self.statistics["nr_package_sent"] += 1
             c = self.components[origin]
             if initial_bw == 0: ##
                 c.bw_pct = 0
@@ -443,7 +445,7 @@ class NetworkEngine:
         self.calculate_paths()
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
                                  len(self.graph_topology.edges(host)) == 1]   
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
@@ -559,7 +561,7 @@ class NetworkEngine:
 
         #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
         self.single_con_hosts = {}
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         

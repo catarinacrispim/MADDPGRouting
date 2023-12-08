@@ -224,6 +224,8 @@ if __name__ == '__main__':
             total_reward = 0
             total_package_loss = 0
             total_packets_sent = 0
+            total_package_loss_nr = 0
+            total_packets_sent_nr = 0
             available_bw_time_steps = np.zeros(100)
             
             for time_steps in range(100):
@@ -313,12 +315,11 @@ if __name__ == '__main__':
                 available_bw_time_steps[time_steps] = np.average(eng.get_link_usage())
 
                 total_reward += sum(rewards) / NUMBER_OF_AGENTS
-                total_package_loss += eng.statistics['package_loss']
-                total_packets_sent += eng.statistics['package_sent']
+                #total_package_loss += eng.statistics['package_loss']
+                #total_packets_sent += eng.statistics['package_sent']
                 if done:
                     break
             
-
             available_bw_episode[e] = np.average(available_bw_time_steps)
             
             ## DATA
@@ -331,8 +332,16 @@ if __name__ == '__main__':
                 maddpg_agents.learn(memory)
 
             total_epoch_reward.append(total_reward)
-            total_epoch_pck_loss += total_package_loss
-            total_epoch_pck_sent += total_packets_sent
+
+            #total_package_loss = eng.statistics['package_loss']
+            #total_packets_sent = eng.statistics['package_sent']
+            
+            total_epoch_pck_loss += eng.statistics['package_loss']
+            total_epoch_pck_sent += eng.statistics['package_sent']
+
+            total_package_loss_nr = eng.statistics['nr_package_loss']
+            total_packets_sent_nr =  eng.statistics['nr_package_sent']
+
             experience_pck_lost += total_epoch_pck_loss
             experience_pck_sent += total_epoch_pck_sent
             # print(f"STATISTICS OG {eng.statistics}")
@@ -360,6 +369,7 @@ if __name__ == '__main__':
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
             percentage[epoch] = round(((total_epoch_pck_loss/total_epoch_pck_sent)*100), 2)
+            percentage_2[epoch] = round(((total_package_loss_nr/total_packets_sent_nr)*100),2)
             available_bw_epoch[epoch] = round(np.average(available_bw_episode),2)
         ### epoch ends
 
