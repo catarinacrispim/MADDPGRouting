@@ -124,7 +124,7 @@ class CriticNetwork(nn.Module):
             #print("\n dueling q network q: ", q)
             #print("\n shape: ", q.shape)
 
-            #q , _= T.max(q, dim=1, keepdim=True)
+            q , _= T.max(q, dim=1, keepdim=True)
             #print("\n dueling q network q: ", q)
             #print("\n shape: ", q.shape)
 

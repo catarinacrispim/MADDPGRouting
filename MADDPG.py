@@ -63,8 +63,7 @@ class MADDPG:
         previous_actions = []
 
         for idx, agent in enumerate(self.agents):
-            future_actor_input = T.tensor(actor_future_input[idx],
-                                          dtype=T.float).to(processing_device)
+            future_actor_input = T.tensor(actor_future_input[idx], dtype=T.float).to(processing_device)
 
             new_action_policy = agent.target_actor.forward(future_actor_input)
 
@@ -92,7 +91,7 @@ class MADDPG:
             current_actor_input = T.tensor(actor_input[idx], dtype=T.float).to(processing_device)
             combined_old_actions_clone = combined_old_actions.clone()
             combined_old_actions_clone[:,
-            idx * self.n_actions:idx * self.n_actions + self.n_actions] = agent.actor.forward(current_actor_input)
+                    idx * self.n_actions:idx * self.n_actions + self.n_actions] = agent.actor.forward(current_actor_input)
             actor_loss = -T.mean(agent.critic.forward(current_state[idx], combined_old_actions_clone[:,
                                                       idx * self.n_actions:idx * self.n_actions + self.n_actions]).flatten())
             agent.actor.optimizer.zero_grad()
@@ -113,7 +112,6 @@ if __name__ == '__main__':
 
     #n_state = 845
     n_action = 5 ##3
-    # onlineQNetwork = QNetwork()
     
     total_rewards = []
     agents = eng.get_all_hosts()
@@ -134,7 +132,7 @@ if __name__ == '__main__':
         critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
         #critic = eng.get_link_usage()
     elif CRITIC_DOMAIN == "local_critic":
-        #critic_dim = STATE_SIZE + NUMBER_OF_AGENTS
+        critic_dim = STATE_SIZE
         #critic = state
         critic_dims = [STATE_SIZE for host in all_hosts]
 
@@ -145,8 +143,7 @@ if __name__ == '__main__':
                            alpha=0.0001, beta=0.0001, tau=0.0001,
                            chkpt_dir='.\\tmp\\maddpg\\')
 
-    memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims,
-                                    n_action, NUMBER_OF_AGENTS, batch_size=100)
+    memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, batch_size=100)
     
 
     ## SETUP ##
@@ -197,6 +194,7 @@ if __name__ == '__main__':
             nr_epochs = 2
 
     percentage = np.zeros(nr_epochs)
+    percentage_2 = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
 
     for epoch in range(0, nr_epochs):
@@ -325,7 +323,7 @@ if __name__ == '__main__':
             ## DATA
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
             #print("Total reward", total_reward)
-            #print("Total package loss", total_package_loss)
+            #print("Total package loss", ng.statistics['package_loss'])
             #print(" ")
 
             if e % 3 == 0 and not EVALUATE:
@@ -378,9 +376,11 @@ if __name__ == '__main__':
     if EVALUATE:
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
+        data_file.write(f"Packets lost Original network (number): {percentage_2[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
         for index in range(1, nr_epochs):
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
+            data_file.write(f"Packets lost Modified network (number) ({index}): {percentage_2[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:

@@ -7,8 +7,8 @@ STATE_SIZE = NR_ACTIVE_CONNECTIONS * 2 + NR_MAX_LINKS + 2
 NUMBER_OF_PATHS = 5
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 50     #epoch
-EPOCH_SIZE = 200    #episode
+NR_EPOCHS = 15     #epoch
+EPOCH_SIZE = 300    #episode
 
 NOTES = "dueling critic max q value. link bw 1,2,3. reward average, bw=0, disregard single connection host"
 
@@ -23,11 +23,11 @@ NUMBER_OF_AGENTS = 25
 
 ### TEST COMBINATIONS ###
 #1 
-#CRITIC_DOMAIN = "central_critic"
-#NEURAL_NETWORK = "duelling_q_network"
-#2
 CRITIC_DOMAIN = "central_critic"
-NEURAL_NETWORK = "simple_q_network"
+NEURAL_NETWORK = "duelling_q_network"
+#2
+#CRITIC_DOMAIN = "central_critic"
+#NEURAL_NETWORK = "simple_q_network"
 #3
 #CRITIC_DOMAIN = "local_critic"
 #NEURAL_NETWORK = "duelling_q_network"
@@ -39,8 +39,8 @@ NEURAL_NETWORK = "simple_q_network"
 #NEURAL_NETWORK = "duelling_q_network"
 #NEURAL_NETWORK = "simple_q_network"
 
-EVALUATE = False
-#EVALUATE = True
+#EVALUATE = False
+EVALUATE = True
 
 ### Modified Network In Evaluate  ###
 MODIFIED_NETWORK = "bw"

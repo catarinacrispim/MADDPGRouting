@@ -317,7 +317,7 @@ class NetworkEngine:
 
             if link.bw_available < 0 and not update_bw:  
                 self.statistics["package_loss"] += -1 * link.bw_available
-                self.statistics["nr_package_lost"] += 1
+                self.statistics["nr_package_loss"] += 1
                 bw += link.bw_available
                 bw = max(1, bw)
 
