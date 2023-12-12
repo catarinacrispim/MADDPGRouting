@@ -118,7 +118,7 @@ if __name__ == '__main__':
     all_hosts = eng.get_all_hosts()
 
     agent_dim = STATE_SIZE
-    agent_dims = [STATE_SIZE for host in all_hosts]
+    agent_dims = [agent_dim for host in all_hosts]
 
     GAMMA = 0.99
     EXPLORE = 20000
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     elif CRITIC_DOMAIN == "local_critic":
         critic_dim = STATE_SIZE
         #critic = state
-        critic_dims = [STATE_SIZE for host in all_hosts]
+        critic_dims = [critic_dim for host in all_hosts]
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
                            fa1=10, fa2=80, fc1=15, fc2=80,
@@ -182,7 +182,8 @@ if __name__ == '__main__':
     elif EVALUATE and UPDATE_WEIGHTS:
         graph_x_axis = np.zeros(EPOCH_SIZE*2)
         aux = np.zeros(EPOCH_SIZE*2) 
-        graph_y_axis = [aux for _ in range(NR_EPOCHS)]
+        graph_y_axis = [[0 for _ in range(EPOCH_SIZE*2)] for _ in range(nr_epochs)]
+        
 
     if EVALUATE:
         maddpg_agents.load_checkpoint()
@@ -346,7 +347,7 @@ if __name__ == '__main__':
             total_rewards.append(total_reward)
 
             if EVALUATE and UPDATE_WEIGHTS:
-                graph_y_axis[epoch][e] = total_reward
+                graph_y_axis[epoch][e] = int(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
             ### episode ends
@@ -365,10 +366,6 @@ if __name__ == '__main__':
                 print("SAVING")
 
         #print(total_epoch_pck_loss)
-
-        if (epoch >1):
-            print(f"\n{epoch-1}: ", graph_y_axis[epoch-1])
-        print(f"\n{epoch}: ", graph_y_axis[epoch])
 
         if EVALUATE:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss

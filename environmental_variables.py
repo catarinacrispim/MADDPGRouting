@@ -8,7 +8,7 @@ NUMBER_OF_PATHS = 5
 #NUMBER_OF_AGENTS = 25
 
 NR_EPOCHS = 15     #epoch
-EPOCH_SIZE = 5    #episode
+EPOCH_SIZE = 150    #episode
 
 NOTES = "dueling critic max q value. link bw 1,2,3. reward average, bw=0, disregard single connection host"
 
@@ -39,9 +39,9 @@ NEURAL_NETWORK = "duelling_q_network"
 #NEURAL_NETWORK = "duelling_q_network"
 #NEURAL_NETWORK = "simple_q_network"
 
-#EVALUATE = False
-EVALUATE = True
-UPDATE_WEIGHTS = True
+EVALUATE = False
+#EVALUATE = True
+UPDATE_WEIGHTS = False
 
 ### Modified Network In Evaluate  ###
 MODIFIED_NETWORK = "bw"
