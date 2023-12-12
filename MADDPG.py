@@ -13,7 +13,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS
 
 
 class MADDPG:
@@ -136,8 +136,6 @@ if __name__ == '__main__':
         #critic = state
         critic_dims = [STATE_SIZE for host in all_hosts]
 
-    #critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
-
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
                            fa1=10, fa2=80, fc1=15, fc2=80,
                            alpha=0.0001, beta=0.0001, tau=0.0001,
@@ -145,6 +143,15 @@ if __name__ == '__main__':
 
     memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, batch_size=100)
     
+    if not EVALUATE:
+        nr_epochs = NR_EPOCHS
+    else:
+        if MODIFIED_NETWORK == "bw":
+            nr_epochs = 4
+        elif MODIFIED_NETWORK == "edges":
+            nr_epochs = 2
+        elif MODIFIED_NETWORK == "intranet":
+            nr_epochs = 2
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
@@ -169,8 +176,13 @@ if __name__ == '__main__':
     path = f'/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
     os.mkdir(path)
 
-    graph_y_axis = np.zeros(NR_EPOCHS)
-    graph_x_axis = np.zeros(NR_EPOCHS)
+    if not EVALUATE:
+        graph_y_axis = np.zeros(NR_EPOCHS)
+        graph_x_axis = np.zeros(NR_EPOCHS)
+    elif EVALUATE and UPDATE_WEIGHTS:
+        graph_x_axis = np.zeros(EPOCH_SIZE*2)
+        aux = np.zeros(EPOCH_SIZE*2) 
+        graph_y_axis = [aux for _ in range(NR_EPOCHS)]
 
     if EVALUATE:
         maddpg_agents.load_checkpoint()
@@ -179,19 +191,6 @@ if __name__ == '__main__':
     packet_sent_evaluate = []
     experience_pck_lost = 0
     experience_pck_sent = 0
-
-    #nr_trains = 1
-
-    #nr_epochs = NR_EPOCHS if not evaluate else 4
-    if not EVALUATE:
-        nr_epochs = NR_EPOCHS
-    else:
-        if MODIFIED_NETWORK == "bw":
-            nr_epochs = 4
-        elif MODIFIED_NETWORK == "edges":
-            nr_epochs = 2
-        elif MODIFIED_NETWORK == "intranet":
-            nr_epochs = 2
 
     percentage = np.zeros(nr_epochs)
     percentage_2 = np.zeros(nr_epochs)
@@ -204,11 +203,11 @@ if __name__ == '__main__':
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
-            if MODIFIED_NETWORK == "bw": #and EVALUATE and epoch != 0:
+            if MODIFIED_NETWORK == "bw": 
                 eng.set_different_topology_bw(epoch)
-            elif MODIFIED_NETWORK == "edges": #and EVALUATE and epoch != 0:
+            elif MODIFIED_NETWORK == "edges": 
                 eng.set_different_topology_edges()
-            elif MODIFIED_NETWORK == "intranet": #and EVALUATE and epoch != 0:
+            elif MODIFIED_NETWORK == "intranet":
                 eng.set_different_topology_intranet()
 
         episode_size = EPOCH_SIZE if not EVALUATE else EPOCH_SIZE * 2
@@ -326,7 +325,7 @@ if __name__ == '__main__':
             #print("Total package loss", ng.statistics['package_loss'])
             #print(" ")
 
-            if e % 3 == 0 and not EVALUATE:
+            if (e % 3 == 0 and not EVALUATE) or (EVALUATE and UPDATE_WEIGHTS):
                 maddpg_agents.learn(memory)
 
             total_epoch_reward.append(total_reward)
@@ -346,12 +345,16 @@ if __name__ == '__main__':
 
             total_rewards.append(total_reward)
 
+            if EVALUATE and UPDATE_WEIGHTS:
+                graph_y_axis[epoch][e] = total_reward
+
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
             ### episode ends
 
         #print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
-        graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)
+        if not EVALUATE:
+            graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)
 
         if epoch % 30 == 0:
             print(f"\n AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
@@ -362,6 +365,10 @@ if __name__ == '__main__':
                 print("SAVING")
 
         #print(total_epoch_pck_loss)
+
+        if (epoch >1):
+            print(f"\n{epoch-1}: ", graph_y_axis[epoch-1])
+        print(f"\n{epoch}: ", graph_y_axis[epoch])
 
         if EVALUATE:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
@@ -395,13 +402,34 @@ if __name__ == '__main__':
             plt.title(f"Total reward per epoch - central critic")
         elif CRITIC_DOMAIN == "local_critic":
             plt.title(f"Total reward per epoch - local critic")
+        plt.legend()
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
         plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
         np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
-        plt.legend()
         plt.show()
-    else:
-        pass
+    elif EVALUATE and UPDATE_WEIGHTS:
+        graph_x_axis = np.arange(0, episode_size)
+        
+        zero = graph_y_axis[0]
+        print("zero: ", zero)
+        one = graph_y_axis[1]
+        print("one: ", one)
+        two = graph_y_axis[2]
+        print("two: ", two)
+        three = graph_y_axis[3]
+        print("three: ", three)
+        plt.plot(zero, label = "Original network")
+        plt.plot(one, label = "Scenario 1")
+        plt.plot(two, label = "Scenario 2")
+        plt.plot(three, label = "Scenario 3")
+        plt.legend()
+        plt.xlabel("Epochs")
+        plt.ylabel("Reward")
+        plt.title(f"Rewards - evaluate")
+        
+        plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+        #np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        plt.show()
     

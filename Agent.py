@@ -118,15 +118,7 @@ class CriticNetwork(nn.Module):
 
             q = self.output(q)  ##verificar
 
-            #print("\n value: ", value)
-            #print("\n q values: ", q_values)
-            #print("\n average: ", average)
-            #print("\n dueling q network q: ", q)
-            #print("\n shape: ", q.shape)
-
             q , _= T.max(q, dim=1, keepdim=True)
-            #print("\n dueling q network q: ", q)
-            #print("\n shape: ", q.shape)
 
         elif NEURAL_NETWORK == "simple_q_network":
             x = F.relu(self.fc1(T.cat([state, action], dim=1)))
