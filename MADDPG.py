@@ -196,6 +196,8 @@ if __name__ == '__main__':
     percentage = np.zeros(nr_epochs)
     percentage_2 = np.zeros(nr_epochs)
     available_bw_epoch = np.zeros(nr_epochs)
+    available_bw_epoch_2 = np.zeros(nr_epochs)
+
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = []
@@ -211,8 +213,16 @@ if __name__ == '__main__':
             elif MODIFIED_NETWORK == "intranet":
                 eng.set_different_topology_intranet()
 
-        episode_size = EPOCH_SIZE if not EVALUATE else EPOCH_SIZE * 2
+        if not EVALUATE:
+            episode_size = EPOCH_SIZE
+        else:
+            if not UPDATE_WEIGHTS:
+                episode_size = EPOCH_SIZE * 2
+            else:
+                episode_size = EPOCH_SIZE * 3
+
         available_bw_episode = np.zeros(episode_size)
+        available_bw_episode_2 = np.zeros(episode_size)
         
         for e in range(episode_size):
             new_tm = e % 2 == 0
@@ -308,7 +318,6 @@ if __name__ == '__main__':
                 memory.store_transition(states, actions, rewards, new_next_states, done, critic_states,
                                         all_critic_new_states)
 
-                learn_steps = 0
 
                 available_bw_time_steps[time_steps] = np.average(eng.get_link_usage())
 
@@ -319,6 +328,8 @@ if __name__ == '__main__':
                     break
             
             available_bw_episode[e] = np.average(available_bw_time_steps)
+            
+            available_bw_episode_2[e] = np.average(eng.get_link_usage())
             
             ## DATA
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
@@ -373,19 +384,24 @@ if __name__ == '__main__':
             percentage[epoch] = round(((total_epoch_pck_loss/total_epoch_pck_sent)*100), 2)
             percentage_2[epoch] = round(((total_package_loss_nr/total_packets_sent_nr)*100),2)
             available_bw_epoch[epoch] = round(np.average(available_bw_episode),2)
+            available_bw_epoch_2[epoch] = round(np.average(available_bw_episode_2), 2)
         ### epoch ends
 
     ##Data text file
     data_file = open(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
     if EVALUATE:
+        if UPDATE_WEIGHTS:
+            data_file.write(f"Update Weights\n")
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
         data_file.write(f"Packets lost Original network (number): {percentage_2[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
+        data_file.write(f"Available bandwidth (2): {available_bw_epoch[0]}% \n\n")
         for index in range(1, nr_epochs):
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
             data_file.write(f"Packets lost Modified network (number) ({index}): {percentage_2[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
+            data_file.write(f"Available bandwidth (2) ({index}): {available_bw_epoch[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:
         data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
@@ -394,39 +410,38 @@ if __name__ == '__main__':
 
     ## Build graph
     if not EVALUATE:
+        ##only show a few resulta
+        #interval = 5
+        #interval_data = [value for index, value in enumerate(graph_y_axis) if index % interval == 0]
+        #graph_x_axis = np.arange(0, len(interval_data))
+        
         graph_x_axis = np.arange(0, NR_EPOCHS)
         if CRITIC_DOMAIN == "central_critic":
             plt.title(f"Total reward per epoch - central critic")
         elif CRITIC_DOMAIN == "local_critic":
             plt.title(f"Total reward per epoch - local critic")
-        plt.legend()
+        
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
+        plt.legend()
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
+        #plt.plot(graph_x_axis, interval_data, label = {NEURAL_NETWORK})
         plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
         np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.show()
     elif EVALUATE and UPDATE_WEIGHTS:
         graph_x_axis = np.arange(0, episode_size)
-        
-        zero = graph_y_axis[0]
-        print("zero: ", zero)
-        one = graph_y_axis[1]
-        print("one: ", one)
-        two = graph_y_axis[2]
-        print("two: ", two)
-        three = graph_y_axis[3]
-        print("three: ", three)
-        plt.plot(zero, label = "Original network")
-        plt.plot(one, label = "Scenario 1")
-        plt.plot(two, label = "Scenario 2")
-        plt.plot(three, label = "Scenario 3")
+ 
+        plt.plot(graph_y_axis[0], label = "Original network")
+        plt.plot(graph_y_axis[1], label = "Scenario 1")
+        plt.plot(graph_y_axis[2], label = "Scenario 2")
+        plt.plot(graph_y_axis[3], label = "Scenario 3")
         plt.legend()
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
         plt.title(f"Rewards - evaluate")
         
         plt.savefig(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-        #np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        np.savetxt(f"/home/student/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.show()
     

@@ -430,6 +430,8 @@ class NetworkEngine:
     def get_link_usage(self):
         bws = [link.get_bw_available_percentage() for link in self.links.values()]
         # return numpry array
+        #print("\n", bws)
+        #print("\n average: ", np.average(bws))
         return np.asarray(bws)
 
     def communication_done(self):
