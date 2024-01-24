@@ -14,6 +14,9 @@ NOTES = "disregard single connection host"
 
 GNN = False
 
+#PATH_SIMULATION = "student"
+PATH_SIMULATION = "server2/Thesis"
+
 ### NETWORK TOPOLOGY TYPE ###
 #TOPOLOGY_TYPE = "service_provider"; NUMBER_OF_HOSTS = 65; NUMBER_OF_AGENTS = 65
 TOPOLOGY_TYPE = "small_network"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25
