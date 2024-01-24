@@ -2,7 +2,7 @@ import torch as T
 from torch import nn, tensor, rand, optim, device, cat, save, load, softmax
 import torch.nn.functional as F
 
-from environmental_variables import NEURAL_NETWORK
+from environmental_variables import NEURAL_NETWORK, PATH_SIMULATION
 
 
 class Agent:
@@ -84,8 +84,8 @@ class CriticNetwork(nn.Module):
         super(CriticNetwork, self).__init__()
 
         self.file_name = f"{name}.sync"  # os.path.join(chkpt_dir, name)
-        self.chkpt_file = f'/home/student/agent_files/{self.file_name}'
-        self.load_file = f'/home/student/agent_files/{load_file}.sync'
+        self.chkpt_file = f'/home/{PATH_SIMULATION}/agent_files/{self.file_name}'
+        self.load_file = f'/home/{PATH_SIMULATION}/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims) #.float()
         #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims)
@@ -142,8 +142,8 @@ class ActorNetwork(nn.Module):
         super(ActorNetwork, self).__init__()
 
         self.chkpt_file = f"{name}.sync"  # os.path.join(chkpt_dir, name)
-        self.chkpt_file = f'/home/student/agent_files/{self.chkpt_file}'
-        self.load_file = f'/home/student/agent_files/{load_file}.sync'
+        self.chkpt_file = f'/home/{PATH_SIMULATION}/agent_files/{self.chkpt_file}'
+        self.load_file = f'/home/{PATH_SIMULATION}/agent_files/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
