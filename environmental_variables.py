@@ -14,8 +14,8 @@ NOTES = "disregard single connection host"
 
 GNN = False
 
-#PATH_SIMULATION = "student"
-PATH_SIMULATION = "server2/Thesis"
+PATH_SIMULATION = "student"
+#PATH_SIMULATION = "server2/Thesis"
 
 ### NETWORK TOPOLOGY TYPE ###
 #TOPOLOGY_TYPE = "service_provider"; NUMBER_OF_HOSTS = 65; NUMBER_OF_AGENTS = 65
@@ -23,11 +23,11 @@ TOPOLOGY_TYPE = "small_network"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25
 
 ### TRAIN COMBINATIONS ###
 #1 
-CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
+#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #2
 #CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #3
-#CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
+CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
 
 EVALUATE = False; UPDATE_WEIGHTS = False
 #EVALUATE = True; UPDATE_WEIGHTS = False
