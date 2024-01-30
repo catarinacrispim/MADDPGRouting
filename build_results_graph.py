@@ -5,12 +5,9 @@ from itertools import islice
 import numpy as np
 from environmental_variables import PATH_SIMULATION
 
-
 import networkx as nx
 import matplotlib.pyplot as plt
-import os
 import datetime
-import pandas as pd
 
 
 day = datetime.date.today().day
@@ -22,18 +19,18 @@ mm = datetime.datetime.now().minute
  
 #Get data from files
 file1=""
-data1 = pd.read_csv(file1)
+data1 = np.loadtxt(file1, delimiter=',', dtype=float)
 
 file2=""
-data2 = pd.read_csv(file2)
+data2 =  np.loadtxt(file2, delimiter=',', dtype=float)
 
 file3=""
-data3 = pd.read_csv(file3)
+data3 =  np.loadtxt(file3, delimiter=',', dtype=float)
 
 
-plt.plot(data1[0], data1[1], label = "Central critic, Duelling Q Network")
-plt.plot(data2[0], data2[1], label = "Central critic, Simple Q Network")
-plt.plot(data3[0], data3[1], label = "Local critic, Duelling Q Network")
+plt.plot(data1[1,:], label = "Central critic, Duelling Q Network")
+plt.plot(data2[1,:], label = "Central critic, Simple Q Network")
+plt.plot(data3[1,:], label = "Local critic, Duelling Q Network")
 plt.legend()
 plt.xlabel("Epochs")
 plt.ylabel("Reward")
