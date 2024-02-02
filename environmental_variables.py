@@ -12,7 +12,7 @@ EPOCH_SIZE = 6    #episode
 
 NOTES = "disregard single connection host"
 
-GNN = False
+GNN_MODULE = False
 
 PATH_SIMULATION = "student"
 #PATH_SIMULATION = "server2/Thesis"

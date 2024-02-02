@@ -1,8 +1,9 @@
 import torch as T
 from torch import nn, tensor, rand, optim, device, cat, save, load, softmax
 import torch.nn.functional as F
+from torch_geometric.nn import SAGEConv, GCNConv
 
-from environmental_variables import NEURAL_NETWORK, PATH_SIMULATION
+from environmental_variables import NEURAL_NETWORK, PATH_SIMULATION, GNN_MODULE
 
 
 class Agent:
@@ -31,8 +32,13 @@ class Agent:
 
         self.update_network_parameters(tau=1)
 
+        self.gnn = GNN(alpha, actor_dims, fa1, fa2, n_actions, 
+                                  chkpt_dir=chkpt_dir,  name=self.agent_name+'_gnn', load_file=self.load_name+'_gnn')
+
     def choose_action(self, observation):
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+        if GNN_MODULE:
+            state = self.gnn.forward(state, )
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         #action = actions ##
@@ -166,3 +172,25 @@ class ActorNetwork(nn.Module):
 
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.load_file))
+
+
+
+class GNN(nn.Module):
+    def __init__(self, beta, input_dims, fc1_dims, fc2_dims,n_agents, n_actions):
+       super(GNN, self).__init__() 
+      
+       #self.conv1 = nn.Linear(input_dims, fc1_dims)
+       #self.conv2 = nn.Linear(fc1_dims, fc2_dims)
+       
+       #graph sage
+       #self.conv1 = SAGEConv(input_dims, fc1_dims)
+       #self.conv2 = SAGEConv(fc1_dims, fc2_dims)
+       
+       #GCN
+       self.conv1 = GCNConv(input_dims, fc1_dims)
+       self.conv2 = GCNConv(fc1_dims, input_dims)
+    
+    def forward(self, state, graph):
+        x = T.relu(self.conv1(state, graph))
+        x = T.relu(self.conv2(state, graph))
+        return x
