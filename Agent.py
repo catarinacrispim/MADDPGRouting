@@ -41,7 +41,7 @@ class Agent:
  
     def choose_action(self, observation, edge_index): #topology: nx.Graph
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)
-        print("\n state: ", state)
+        #print("\n state: ", state)
         if GNN_MODULE:
             #print("\n adjacency matrix: ", T.tensor(nx.adjacency_matrix(topology)))
             print("\n\n edge index : ", edge_index) 
