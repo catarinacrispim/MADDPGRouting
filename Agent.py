@@ -1,7 +1,12 @@
 import torch as T
 from torch import nn, tensor, rand, optim, device, cat, save, load, softmax
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv, GCNConv
+from torch_geometric.nn import SAGEConv, GCNConv, GATConv, GraphConv
+import networkx as nx
+import numpy as np
+from torch_geometric.data import Data
+from torch_geometric.utils import from_networkx
+
 
 from environmental_variables import NEURAL_NETWORK, PATH_SIMULATION, GNN_MODULE
 
@@ -32,13 +37,52 @@ class Agent:
 
         self.update_network_parameters(tau=1)
 
-        self.gnn = GNN(alpha, actor_dims, fa1, fa2, n_actions, 
-                                  chkpt_dir=chkpt_dir,  name=self.agent_name+'_gnn', load_file=self.load_name+'_gnn')
-
-    def choose_action(self, observation):
+        self.gnn = GNNNetwork(alpha, actor_dims, fa1, fa2)#, n_actions)#, name=self.agent_name+'_gnn', load_file=self.load_name+'_gnn')
+ 
+    def choose_action(self, observation, edge_index): #topology: nx.Graph
         state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+        print("\n state: ", state)
         if GNN_MODULE:
-            state = self.gnn.forward(state, )
+            #print("\n adjacency matrix: ", T.tensor(nx.adjacency_matrix(topology)))
+            print("\n\n edge index : ", edge_index) 
+            #print("\n shape ",  T.tensor(list(topology.edges)).shape)
+            #print("\n\n edge list t: ", T.tensor(list(topology.edges)).t().contiguous())
+            #print("\n\n edge list t: ", T.tensor(list(topology.edges)).t()) 
+            #print("\n\n edge list t: ", T.tensor(list(topology.edges)).t().contiguous().shape) 
+            ##messages from  nodes [0] are sent to node [1]
+            #state = self.gnn.forward(state, T.tensor(list(topology.edges)).t()) #graph structure
+            #print("\n\n edge 0 ", edge_index[0])
+            #print("\n\n edge 1", edge_index[1])
+            #print("\n shape ", edge_index.shape)
+            #print("\n shape ", edge_index[0,15])
+            #print("\n shape ", edge_index.size(1))
+            
+            
+            """mapping = {}
+            mapped_edge_index = []
+            for (src, dst) in list(edge_index.t()):
+                if src not in mapping:
+                    mapping[src] = len(mapping)
+                if dst not in mapping:
+                    mapping[dst] = len(mapping)
+                mapped_edge_index.append([mapping[src], mapping[dst]])
+            edge_index = T.tensor(mapped_edge_index).t().contiguous()
+            print("\n\n new edge index : ", edge_index) """
+            
+            dataset = Data(state=state, edge_index=edge_index, num_nodes=25)
+            #for data in dataset:
+            #    assert data.edge_index.max() < 42
+            #data = from_networkx(edge_index)
+            #state = self.gnn.forward(state, data.edge_index)
+            state = self.gnn.forward(dataset)
+            """try:
+                state = self.gnn.forward(dataset)
+            except IndexError as e:
+                print("<<< index error: ", e)
+                print("problematic indices: ")
+                problematic = edge_index[:, (edge_index.min() < 0) | (edge_index.max() >= 25)]
+                print(problematic)"""
+
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         #action = actions ##
@@ -175,9 +219,9 @@ class ActorNetwork(nn.Module):
 
 
 
-class GNN(nn.Module):
-    def __init__(self, beta, input_dims, fc1_dims, fc2_dims,n_agents, n_actions):
-       super(GNN, self).__init__() 
+class GNNNetwork(nn.Module):
+    def __init__(self, alfa, input_dims, fc1_dims, fc2_dims):   #,n_agents, n_actions):
+       super(GNNNetwork, self).__init__() 
       
        #self.conv1 = nn.Linear(input_dims, fc1_dims)
        #self.conv2 = nn.Linear(fc1_dims, fc2_dims)
@@ -187,10 +231,30 @@ class GNN(nn.Module):
        #self.conv2 = SAGEConv(fc1_dims, fc2_dims)
        
        #GCN
-       self.conv1 = GCNConv(input_dims, fc1_dims)
-       self.conv2 = GCNConv(fc1_dims, input_dims)
+       #self.conv1 = GCNConv(input_dims, fc1_dims)
+       #self.conv2 = GCNConv(fc1_dims, input_dims)
+
+       #self.conv1 = GATConv(input_dims, fc1_dims)
+
+       #GraphConv
+       self.conv1 = GraphConv(33, 33)
+       self.conv2 = GraphConv(33, 33)
+
+       ##example
+       #self.conv1 = nn.Conv1d(input_dims, fc1_dims, kernel_size = 3)
+       #self.fc2 = nn.Linear(fc1_dims, input_dims)
     
-    def forward(self, state, graph):
-        x = T.relu(self.conv1(state, graph))
-        x = T.relu(self.conv2(state, graph))
+    #def forward(self, state, edge ): #state, graph
+    def forward(self, data ):
+        state, edge = data.state, data.edge_index
+        print("\n checking edges", edge, "\n shape: ", edge.shape)
+        print("\n checking state", state, "\n shape: ", state.shape)
+        num_edges = 41
+        num_nodes = 25
+        #edge=edge.clamp(0,num_nodes -1)
+        x = self.conv1(state, edge)
+        #x = self.conv1(state)
+        x = T.relu(x)
+        x = self.fc2(state, edge)
+        x = T.relu(x)
         return x

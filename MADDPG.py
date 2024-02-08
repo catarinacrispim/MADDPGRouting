@@ -4,6 +4,7 @@ import torch as T
 import numpy as np
 from torch import tensor, cat, no_grad, mean
 import torch.nn.functional as F
+import networkx as nx
 
 import os
 import datetime
@@ -13,7 +14,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE
 
 
 class MADDPG:
@@ -39,10 +40,10 @@ class MADDPG:
         for agent in self.agents:
             agent.load_models()
 
-    def choose_action(self, raw_obs):
+    def choose_action(self, raw_obs, topology):
         actions = []
         for agent_idx, agent in enumerate(self.agents):
-            action = agent.choose_action(raw_obs[agent_idx])
+            action = agent.choose_action(raw_obs[agent_idx], topology)
             actions.append(np.argmax(action))
         return actions
 
@@ -173,7 +174,10 @@ if __name__ == '__main__':
         learning = "test"
     else:
         learning = "train"
-    path = f'/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
+    if GNN_MODULE:
+        path = f'/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
+    else:
+        path = f'/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
     os.mkdir(path)
 
     if not EVALUATE:
@@ -217,9 +221,9 @@ if __name__ == '__main__':
             episode_size = EPOCH_SIZE
         else:
             if not UPDATE_WEIGHTS:
-                episode_size = EPOCH_SIZE * 2
+                episode_size = EPOCH_SIZE * 5
             else:
-                episode_size = EPOCH_SIZE * 3
+                episode_size = EPOCH_SIZE * 5
 
         available_bw_episode = np.zeros(episode_size)
         available_bw_episode_2 = np.zeros(episode_size)
@@ -273,7 +277,24 @@ if __name__ == '__main__':
                         #critic_states = states
                         critic_states.append(state)
 
-                actions = maddpg_agents.choose_action(states)
+                ##tensor of origin - destination communication sequences
+                #int_hosts = T.tensor([i+1 for i,n in enumerate(all_hosts)])
+                #int_array = T.tensor([int(element) for element in np.array(all_dsts)], dtype=T.int)
+                #edge_index = T.stack([int_hosts, int_array], dim=0)
+                #print("\n", T.stack([int_hosts, int_array], dim=0))
+
+                ##tensor of edges in network        
+                edge_index = T.tensor(list(eng.get_nx_topology().edges), dtype=T.long).t().contiguous()      
+                #edge_index = T.tensor(list(eng.get_nx_topology().edges))
+                #edge_index = list(eng.get_nx_topology().edges)
+                #edge_index = eng.get_nx_topology().edges
+
+                ##adjacency matrix approach
+                #edge_index = nx.adjacency_matrix(eng.get_nx_topology())
+                
+                #edge_index = eng.get_nx_topology()
+
+                actions = maddpg_agents.choose_action(states, edge_index) 
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
@@ -389,20 +410,23 @@ if __name__ == '__main__':
         ### epoch ends
 
     ##Data text file
-    data_file = open(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    if GNN_MODULE:
+        data_file = open(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    else:
+        data_file = open(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
     if EVALUATE:
         if UPDATE_WEIGHTS:
             data_file.write(f"Update Weights\n")
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
         data_file.write(f"Packets lost Original network (number): {percentage_2[0]}% \n")
-        data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n\n")
-        data_file.write(f"Available bandwidth (2): {available_bw_epoch[0]}% \n\n")
+        data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n")
+        data_file.write(f"Available bandwidth 2: {available_bw_epoch[0]}% \n\n")
         for index in range(1, nr_epochs):
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
             data_file.write(f"Packets lost Modified network (number) ({index}): {percentage_2[index]}% \n")
-            data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n\n")
-            data_file.write(f"Available bandwidth (2) ({index}): {available_bw_epoch[index]}% \n\n")
+            data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n")
+            data_file.write(f"Available bandwidth 2 ({index}): {available_bw_epoch[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:
         data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
@@ -427,10 +451,14 @@ if __name__ == '__main__':
         plt.legend()
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
         #plt.plot(graph_x_axis, interval_data, label = {NEURAL_NETWORK})
-        plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-        np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        if GNN_MODULE:
+            plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        else:
+            plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
+            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.show()
-    elif EVALUATE and UPDATE_WEIGHTS:
+    elif EVALUATE: # and UPDATE_WEIGHTS:
         graph_x_axis = np.arange(0, episode_size)
  
         plt.plot(graph_y_axis[0], label = "Original network")

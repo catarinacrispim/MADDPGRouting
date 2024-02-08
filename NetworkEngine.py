@@ -248,7 +248,7 @@ class NetworkEngine:
                 h.active_dst = dst
                 path_id = h.get_active_path(dst)
                 self.simulate_communication(host, dst, path_id, self.bws[host], 2)
-                #print(f"\n SENDING FROM {host} to {dst}")
+                print(f"\n SENDING FROM {host} to {dst}")
             else:
                 h.update_communication()
                 # means the communication is finished
@@ -573,6 +573,9 @@ class NetworkEngine:
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
+
+    def get_nx_topology(self):
+        return self.graph_topology
 
 
 
