@@ -184,9 +184,9 @@ if __name__ == '__main__':
         graph_y_axis = np.zeros(NR_EPOCHS)
         graph_x_axis = np.zeros(NR_EPOCHS)
     elif EVALUATE and UPDATE_WEIGHTS:
-        graph_x_axis = np.zeros(EPOCH_SIZE*2)
-        aux = np.zeros(EPOCH_SIZE*2) 
-        graph_y_axis = [[0 for _ in range(EPOCH_SIZE*2)] for _ in range(nr_epochs)]
+        graph_x_axis = np.zeros(EPOCH_SIZE*4)
+        aux = np.zeros(EPOCH_SIZE*4) 
+        graph_y_axis = [[0 for _ in range(EPOCH_SIZE*4)] for _ in range(nr_epochs)]
         
 
     if EVALUATE:
@@ -221,9 +221,9 @@ if __name__ == '__main__':
             episode_size = EPOCH_SIZE
         else:
             if not UPDATE_WEIGHTS:
-                episode_size = EPOCH_SIZE * 5
+                episode_size = EPOCH_SIZE * 4
             else:
-                episode_size = EPOCH_SIZE * 5
+                episode_size = EPOCH_SIZE * 4
 
         available_bw_episode = np.zeros(episode_size)
         available_bw_episode_2 = np.zeros(episode_size)
