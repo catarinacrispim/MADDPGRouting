@@ -183,7 +183,7 @@ if __name__ == '__main__':
     if not EVALUATE:
         graph_y_axis = np.zeros(NR_EPOCHS)
         graph_x_axis = np.zeros(NR_EPOCHS)
-    elif EVALUATE and UPDATE_WEIGHTS:
+    elif EVALUATE: # and UPDATE_WEIGHTS:
         graph_x_axis = np.zeros(EPOCH_SIZE*4)
         aux = np.zeros(EPOCH_SIZE*4) 
         graph_y_axis = [[0 for _ in range(EPOCH_SIZE*4)] for _ in range(nr_epochs)]
