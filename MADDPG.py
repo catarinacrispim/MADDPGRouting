@@ -379,7 +379,7 @@ if __name__ == '__main__':
 
             total_rewards.append(total_reward)
 
-            if EVALUATE and UPDATE_WEIGHTS:
+            if EVALUATE: #and UPDATE_WEIGHTS:
                 graph_y_axis[epoch][e] = int(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
