@@ -154,13 +154,19 @@ class NetworkEngine:
         self.hosts = {}
         self.switchs = {}
         self.components = {}
+        self.create_components(self.graph_topology)
 
-        if new_tm:
-            self.current_tm_index += 1
-            self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
+        if not EVALUATE:
+            if new_tm:
+                self.current_tm_index += 1
+                self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
+        else:
+            if new_tm:
+                self.communication_sequences = generate_traffic_sequence(self)
+
 
         #print("new tm: ", self.communication_sequences)
-        self.create_components(self.graph_topology)
+        
         # self.read_topology("topology_arpanet.txt")
         # self.build_graph()
         # self.calculate_paths()
@@ -594,8 +600,8 @@ def generate_traffic_sequence(network=None):
             dsts = communications.get(host, [])
             dsts.append(dst)
             communications[host] = dsts
-    print("\n comunications: ", communications)
-    print("\n bws: ", bws)
+    #print("\n comunications: ", communications)
+    #print("\n bws: ", bws)
     return  communications
 
 def generate_traffic_sequence_service_provider(network=None):
@@ -630,7 +636,5 @@ def generate_traffic_sequence_service_provider(network=None):
 
     #print("\n comunications: ", communications)
     #print("\n bws: ", bws)
-
     json.dump(list_all_communications, open("tms_service_provider.json", "w"), indent=4)
-
     return  communications
