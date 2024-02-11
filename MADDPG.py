@@ -127,7 +127,7 @@ if __name__ == '__main__':
     INITIAL_EPSILON = 0.5
     FINAL_EPSILON = 0.0001
     REPLAY_MEMORY = 50000
-    BATCH = 256
+    #BATCH = 256
 
     if CRITIC_DOMAIN == "central_critic":
         critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS

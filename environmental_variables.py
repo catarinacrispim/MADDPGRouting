@@ -14,6 +14,7 @@ GNN_MODULE = False
 
 #PATH_SIMULATION = "student"
 PATH_SIMULATION = "server2/Thesis"
+SIM_NR = 0
 
 ### NETWORK TOPOLOGY TYPE ###
 #TOPOLOGY_TYPE = "service_provider"; NUMBER_OF_HOSTS = 65; NUMBER_OF_AGENTS = 65
