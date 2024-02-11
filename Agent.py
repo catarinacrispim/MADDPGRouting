@@ -137,7 +137,7 @@ class CriticNetwork(nn.Module):
         self.chkpt_file = f'/home/{PATH_SIMULATION}/agent_files/{self.file_name}'
         self.load_file = f'/home/{PATH_SIMULATION}/agent_files/{load_file}.sync'
 
-        self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims) #.float()
+        self.fc1 = nn.Linear(input_dims + n_actions, fc1_dims).float()
         #self.fc1 = nn.Linear(input_dims + n_agents * n_actions, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims) ## hidden layer 1
         #self.q = nn.Linear(fc1_dims, 1)
