@@ -14,7 +14,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE, NUMBER_OF_PATHS
 
 
 class MADDPG:
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     env = NetworkEnv(eng)
 
     #n_state = 845
-    n_action = 5 ##3
+    n_action = NUMBER_OF_PATHS
     
     total_rewards = []
     batch_rewards = []
