@@ -22,7 +22,7 @@ TOPOLOGY_TYPE = "small_network"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25
 
 ### TRAIN COMBINATIONS ###
 #1 
-CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
+#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #2
 #CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #3

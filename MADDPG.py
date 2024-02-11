@@ -396,7 +396,7 @@ if __name__ == '__main__':
             #graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)  #average
             if ((epoch+1) % GRAPH_BATCH_SIZE) == 0:
                 batch_index = int(((epoch+1) / GRAPH_BATCH_SIZE)-1)
-                graph_y_axis[batch_index] = sum(batch_rewards) #/ len(batch_rewards)
+                graph_y_axis[batch_index] = sum(batch_rewards) / len(batch_rewards)
                 batch_rewards = []
 
         if epoch % 20 == 0: ##30
