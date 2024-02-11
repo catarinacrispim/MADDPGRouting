@@ -14,7 +14,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE, NUMBER_OF_PATHS
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE, NUMBER_OF_PATHS
 
 
 class MADDPG:
@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
-    path = f'/home/{PATH_SIMULATION}/agent_files'
+    path = f'/home/{PATH_SIMULATION}/agent_files{SIM_NR}'
     if not os.path.exists(path):
         print("Creating 'agent_files' directory")
         os.mkdir(path)
