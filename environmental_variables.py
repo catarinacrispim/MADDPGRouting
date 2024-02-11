@@ -1,14 +1,12 @@
 NR_ACTIVE_CONNECTIONS = 10
-ACTIVE_HOST = None
 NR_MAX_LINKS = 11
 STATE_SIZE = NR_ACTIVE_CONNECTIONS * 2 + NR_MAX_LINKS + 2
 #NUMBER_OF_HOSTS = 13
-#NUMBER_OF_HOSTS = 25
-NUMBER_OF_PATHS = 5
+NUMBER_OF_PATHS = 3
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 1000     #epoch
-EPOCH_SIZE = 250    #episode
+NR_EPOCHS = 100     #epoch
+EPOCH_SIZE = 3    #episode
 
 NOTES = "disregard single connection host; random traffic matrix in test"
 
@@ -29,8 +27,10 @@ CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #3
 #CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
 
-#EVALUATE = False; UPDATE_WEIGHTS = False
-EVALUATE = True; UPDATE_WEIGHTS = False
+GRAPH_BATCH_SIZE = 100 #batch size for evaluate graph
+
+EVALUATE = False; UPDATE_WEIGHTS = False
+#EVALUATE = True; UPDATE_WEIGHTS = False
 #EVALUATE = True; UPDATE_WEIGHTS = True
 
 ### Modified Network In Evaluate  ###

@@ -14,7 +14,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE
 
 
 class MADDPG:
@@ -115,6 +115,7 @@ if __name__ == '__main__':
     n_action = 5 ##3
     
     total_rewards = []
+    batch_rewards = []
     agents = eng.get_all_hosts()
     all_hosts = eng.get_all_hosts()
 
@@ -181,8 +182,11 @@ if __name__ == '__main__':
     os.mkdir(path)
 
     if not EVALUATE:
-        graph_y_axis = np.zeros(NR_EPOCHS)
-        graph_x_axis = np.zeros(NR_EPOCHS)
+        #graph_y_axis = np.zeros(NR_EPOCHS)
+        #graph_x_axis = np.zeros(NR_EPOCHS)
+        batch_aux = int(NR_EPOCHS/GRAPH_BATCH_SIZE)
+        graph_y_axis = np.zeros(batch_aux)
+        graph_x_axis = np.arange(0, batch_aux)
     elif EVALUATE: # and UPDATE_WEIGHTS:
         graph_x_axis = np.zeros(EPOCH_SIZE*4)
         aux = np.zeros(EPOCH_SIZE*4) 
@@ -378,6 +382,7 @@ if __name__ == '__main__':
             # print(f"STATISTICS OG {eng.statistics}")
 
             total_rewards.append(total_reward)
+            batch_rewards.append(total_reward)
 
             if EVALUATE: #and UPDATE_WEIGHTS:
                 graph_y_axis[epoch][e] = int(total_reward)
@@ -388,9 +393,13 @@ if __name__ == '__main__':
         #print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
         if not EVALUATE:
-            graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)
+            #graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)  #average
+            if ((epoch+1) % GRAPH_BATCH_SIZE) == 0:
+                batch_index = int(((epoch+1) / GRAPH_BATCH_SIZE)-1)
+                graph_y_axis[batch_index] = sum(batch_rewards) #/ len(batch_rewards)
+                batch_rewards = []
 
-        if epoch % 30 == 0:
+        if epoch % 20 == 0: ##30
             print(f"\n AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
             total_rewards = []
 
@@ -440,7 +449,8 @@ if __name__ == '__main__':
         #interval_data = [value for index, value in enumerate(graph_y_axis) if index % interval == 0]
         #graph_x_axis = np.arange(0, len(interval_data))
         
-        graph_x_axis = np.arange(0, NR_EPOCHS)
+        #graph_x_axis = np.arange(0, NR_EPOCHS)
+        
         if CRITIC_DOMAIN == "central_critic":
             plt.title(f"Total reward per epoch - central critic")
         elif CRITIC_DOMAIN == "local_critic":
