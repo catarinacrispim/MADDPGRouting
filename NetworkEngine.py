@@ -21,6 +21,9 @@ class NetworkEngine:
         if TOPOLOGY_TYPE == "service_provider":
             self.set_service_provider_topology()
             return
+        elif TOPOLOGY_TYPE == "arpanet":
+            self.set_arpanet_topology()
+            return
 
         self.graph_topology = pickle.load(open('small_network.pickle', 'rb'))  # nx.Graph()
         self.links = {}
@@ -160,9 +163,13 @@ class NetworkEngine:
             if new_tm:
                 self.current_tm_index += 1
                 self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
+                
         else:
             if new_tm:
-                self.communication_sequences = generate_traffic_sequence(self)
+                if TOPOLOGY_TYPE == "small_network":
+                    self.communication_sequences = generate_traffic_sequence(self)
+                if TOPOLOGY_TYPE == "service_provider":
+                    self.communication_sequences = generate_traffic_sequence_service_provider(self)
 
 
         #print("new tm: ", self.communication_sequences)
@@ -272,6 +279,14 @@ class NetworkEngine:
     def get_nexts_dsts(self):
         return {host: self.components[host].get_next_dst() for host in self.get_all_hosts() if
                 not self.components[host].is_busy()}
+        """dict = {}
+        for host in self.get_all_hosts():
+            if not self.components[host].is_busy():
+                destination = self.components[host].get_next_dst()
+                if destination != None:
+                    host : self.components[host].get_next_dst()
+                    dict[host] = destination
+        return dict"""
 
     def get_busy_hosts(self):
         return [host for host in self.get_all_hosts() if self.components[host].is_busy()]
@@ -399,12 +414,14 @@ class NetworkEngine:
 
         hostC: NetworkComponent
         links = []
+        #get neighbors
         for neighbor in hostC.neighbors:
             links.append(self.get_link(host, neighbor))
 
         state = np.empty((STATE_SIZE), dtype=object)
         state = np.full((STATE_SIZE), -1)
         link: Link
+        #get available bw for the neighbours
         for index, link in enumerate(links):
             state[index] = link.get_bw_available_percentage() / 100
 
@@ -463,7 +480,7 @@ class NetworkEngine:
         self.communication_sequences = self.all_tms[self.current_tm_index]
     
     
-    def set_different_topology_bw(self, mod):    
+    def set_different_topology_edges(self, mod):    
         if mod == 1:
             nr_links_changed = 1
         elif mod == 2:
@@ -471,7 +488,6 @@ class NetworkEngine:
         elif mod == 3:
             nr_links_changed = 3
 
-        #this approach changes link bw to 0, to simulate busy paths
         self.graph_topology = nx.Graph(pickle.load(open('small_network.pickle', 'rb')))
         edges = []
         change = []
@@ -490,38 +506,6 @@ class NetworkEngine:
         #print("\n edges: ", self.graph_topology.edges(data=True))
         self.setup()
 
-    def set_different_topology_edges(self):
-        #this approach eliminates edges from the network, number of routers stays the same
-        #self.graph_topology = pickle.load(open('network_edges_change.pickle', 'rb'))
-
-        #graph_to_change = pickle.load(open('small_network.pickle', 'rb'))
-        #G = nx.Graph(self.graph_topology)
-        print("\n Original", self.graph_topology)
-        print("nodes: ", self.graph_topology.nodes())
-        print("edges: ", self.graph_topology.edges())
-        #high_degree_nodes = [node for node in self.graph_topology.nodes() if self.graph_topology.degree(node)>1]
-        #edges = list(G.edges())
-        #edges = [edge for node in high_degree_nodes for edge in self.graph_topology.edges(node)]
-        edges = []
-        remove = []
-
-        for edge in self.graph_topology.edges():
-            n1, n2 = edge
-            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
-                edges.append(edge)
-        
-        remove = random.sample(edges, min(4, len(edges)))
-        
-        for edge in remove:
-            print("removing edge: ", edge)
-            self.graph_topology.remove_edge(*edge)
-        
-        print("\n Modified", self.graph_topology)
-        print("nodes: ", self.graph_topology.nodes())
-        print("edges: ", self.graph_topology.edges())
-
-        self.setup()
-
     def set_different_topology_intranet(self):
         #this approach evaluates the agents performance in a different graph arquitecture
         n = 23 #num nodes
@@ -532,6 +516,42 @@ class NetworkEngine:
         #nx.draw(graph, with_labels=True)
         #plt.show()
         self.setup()
+
+    def set_arpanet_topology(self):
+        self.links = {}
+        self.hosts = {}
+        self.switchs = {}
+        self.components = {}
+        self.paths = {}
+        self.bws = {}
+        self.graph_topology = pickle.load(open("topology_arpanet.pickle", "rb"))
+        self.communication_sequences = generate_traffic_sequence_arpanet(self)
+        self.all_tms = {}
+        self.graph_has_data = True
+        
+        #nx.draw(self.graph_topology, with_labels=True)
+        #plt.show()
+        self.create_components(self.graph_topology) #creates nodes and edges
+        self.communication_sequences = generate_traffic_sequence_arpanet(self.graph_topology)
+        self.hosts = self.get_all_hosts()
+        for host in self.hosts:
+            self.bws[host] = random.randint(10, 25)
+        self.calculate_paths()
+
+        print("\n hosts: ", self.hosts)
+        self.number_of_hosts = len(self.hosts)
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if len(self.graph_topology.edges(host)) == 1]  
+        print("single con hosts: ", self.single_con_hosts)
+        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        
+        #generate_traffic_sequence_arpanet(self)
+
+        self.all_tms = json.load(open("tms_arpanet.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
+
 
     def set_service_provider_topology(self):
         self.links = {}
@@ -551,16 +571,41 @@ class NetworkEngine:
                                         'H21': ['H51', 'H15', 'H54', 'H7', 'H15', 'H1', 'H50', 'H62', 'H36', 'H2', 'H54', 'H1', 'H41', 'H33', '', 'H58', 'H24', 'H18', 'H5', 'H6', 'H55', 'H56', 'H62', 'H49', 'H2', 'H37', 'H44', 'H2', 'H4', 'H48'], 
                                         'H30': ['H47', 'H26', 'H59', 'H19', 'H36', 'H54', 'H41', 'H17', 'H56', 'H45', 'H16', 'H63', '', 'H11', 'H11', 'H41', 'H49', 'H11', 'H21', 'H63', 'H29', 'H47', 'H44', 'H57', 'H33', 'H42', 'H17', 'H44', 'H51', 'H50'], 
                                         'H38': ['H32', 'H25', 'H33', 'H24', 'H19', 'H58', 'H9', 'H22', 'H65', 'H25', 'H5', 'H5', 'H45', 'H14', 'H56', 'H16', 'H51', 'H29', '', 'H5', 'H53', 'H31', 'H51', 'H35', 'H23', 'H25', 'H2', 'H26', '', 'H61'], 
-                                        'H47': ['', 'H29', 'H18', 'H12', '', 'H23', 'H61', 'H3', '', 'H59', 'H7', 'H60', 'H27', 'H9', 'H57', 'H27', 'H53', 'H3', 'H43', 'H1', 'H64', 'H45', 'H57', 'H27', 'H40', 'H10', 'H26', 'H25', 'H30', ''], 'H56': ['H29', 'H12', '', 'H16', '', 'H23', 'H41', 'H62', 'H2', 'H16', 'H40', 'H14', 'H48', 'H31', 'H49', 'H46', 'H14', '', 'H20', 'H30', 'H15', 'H33', '', 'H53', 'H11', 'H3', 'H34', 'H10', 'H36', 'H41'], 
-                                        'H65': ['H4', 'H28', 'H46', 'H50', 'H5', 'H44', 'H46', 'H38', 'H40', 'H29', 'H4', 'H35', 'H12', 'H11', 'H26', 'H52', 'H38', 'H41', 'H34', 'H2', 'H1', 'H18', 'H43', 'H39', 'H8', 'H33', 'H2', 'H10', 'H45', 'H32'], 'H1': ['H15', 'H24', 'H42', 'H61', 'H45', 'H20', 'H50', 'H5', 'H10', 'H55', 'H51', 'H12', 'H12', 'H38', 'H3', 'H55', 'H58', 'H53', 'H45', 'H7', 'H47', 'H36', 'H30', 'H39', 'H41', 'H40', 'H43', 'H47', 'H55', 'H2'], 'H2': ['H56', 'H12', 'H63', 'H14', 'H14', 'H52', 'H36', 'H11', 'H14', 'H18', 'H40', 'H65', 'H36', 'H47', 'H19', '', 'H28', 'H4', 'H24', 'H48', 'H9', '', 'H30', 'H34', 'H16', '', 'H22', 'H40', 'H63', 'H7'], 'H3': ['H16', '', 'H40', 'H65', 'H32', 'H62', 'H64', 'H40', 'H20', 'H48', 'H26', 'H57', 'H4', 'H15', 'H28', 'H8', 'H31', 'H36', 'H16', 'H36', 'H41', 'H34', '', 'H56', 'H4', 'H35', 'H19', 'H1', 'H52', 'H38'], 
+                                        'H47': ['', 'H29', 'H18', 'H12', '', 'H23', 'H61', 'H3', '', 'H59', 'H7', 'H60', 'H27', 'H9', 'H57', 'H27', 'H53', 'H3', 'H43', 'H1', 'H64', 'H45', 'H57', 'H27', 'H40', 'H10', 'H26', 'H25', 'H30', ''], 
+                                        'H56': ['H29', 'H12', '', 'H16', '', 'H23', 'H41', 'H62', 'H2', 'H16', 'H40', 'H14', 'H48', 'H31', 'H49', 'H46', 'H14', '', 'H20', 'H30', 'H15', 'H33', '', 'H53', 'H11', 'H3', 'H34', 'H10', 'H36', 'H41'], 
+                                        'H65': ['H4', 'H28', 'H46', 'H50', 'H5', 'H44', 'H46', 'H38', 'H40', 'H29', 'H4', 'H35', 'H12', 'H11', 'H26', 'H52', 'H38', 'H41', 'H34', 'H2', 'H1', 'H18', 'H43', 'H39', 'H8', 'H33', 'H2', 'H10', 'H45', 'H32'], 
+                                        'H1': ['H15', 'H24', 'H42', 'H61', 'H45', 'H20', 'H50', 'H5', 'H10', 'H55', 'H51', 'H12', 'H12', 'H38', 'H3', 'H55', 'H58', 'H53', 'H45', 'H7', 'H47', 'H36', 'H30', 'H39', 'H41', 'H40', 'H43', 'H47', 'H55', 'H2'], 
+                                        'H2': ['H56', 'H12', 'H63', 'H14', 'H14', 'H52', 'H36', 'H11', 'H14', 'H18', 'H40', 'H65', 'H36', 'H47', 'H19', '', 'H28', 'H4', 'H24', 'H48', 'H9', '', 'H30', 'H34', 'H16', '', 'H22', 'H40', 'H63', 'H7'], 
+                                        'H3': ['H16', '', 'H40', 'H65', 'H32', 'H62', 'H64', 'H40', 'H20', 'H48', 'H26', 'H57', 'H4', 'H15', 'H28', 'H8', 'H31', 'H36', 'H16', 'H36', 'H41', 'H34', '', 'H56', 'H4', 'H35', 'H19', 'H1', 'H52', 'H38'], 
                                         'H4': ['H56', 'H19', 'H64', 'H15', 'H10', 'H54', 'H20', 'H36', 'H44', 'H46', 'H47', 'H39', 'H6', 'H55', 'H52', '', 'H15', 'H61', 'H34', 'H64', 'H8', 'H43', 'H27', 'H1', 'H65', 'H2', '', 'H50', '', 'H30'], 
-                                        'H5': ['H15', 'H16', 'H34', 'H50', 'H38', 'H55', 'H61', 'H48', 'H8', 'H11', 'H59', 'H40', 'H56', 'H63', 'H41', 'H24', 'H40', 'H12', 'H4', 'H8', 'H42', '', '', 'H22', 'H6', 'H9', 'H11', 'H1', '', 'H33'], 'H6': ['H17', 'H57', 'H12', 'H48', 'H62', 'H29', 'H49', 'H33', 'H53', 'H26', 'H16', 'H16', 'H37', 'H20', 'H52', 'H45', 'H7', 'H34', 'H45', 'H41', 'H18', 'H46', 'H30', 'H64', '', 'H5', 'H62', 'H1', 'H63', 'H10'], 'H7': ['H33', 'H13', 'H51', '', 'H14', 'H29', 'H62', 'H59', 'H38', 'H16', 'H38', 'H8', 'H35', '', 'H42', 'H11', 'H8', 'H24', 'H39', 'H50', 'H38', 'H23', 'H27', 'H54', '', 'H55', '', 'H50', 'H40', 'H34'], 'H9': ['H41', 'H45', 'H2', 'H59', 'H29', 'H14', 'H10', '', 'H41', 'H10', 'H13', 'H20', 'H33', '', 'H55', 'H6', 'H28', 'H31', 'H55', 'H49', 'H48', 'H20', 'H58', 'H13', 'H17', 'H64', 'H8', 'H13', 'H19', 'H14'], 'H10': ['H12', '', 'H57', 'H3', 'H24', 'H51', 'H46', 'H18', 'H52', 'H39', 'H3', 'H47', 'H38', 'H22', 'H61', 'H24', 'H24', 'H43', 'H1', 'H51', 'H62', 'H58', 'H37', 'H3', '', 'H49', 'H16', 'H41', '', 'H53'], 'H14': ['H36', 'H62', 'H6', 'H18', 'H52', 'H42', 'H59', 'H56', 'H13', 'H37', 'H4', 'H9', 'H37', 'H65', 'H7', 'H37', 'H61', 'H51', 'H36', '', 'H63', 'H2', 'H12', 'H40', 'H54', 'H52', 'H55', 'H32', 'H34', 'H45'], 'H11': ['H25', 'H29', '', 'H40', 'H13', '', 'H60', 'H8', 'H30', 'H44', 'H40', 'H49', '', 'H9', 'H46', 'H31', '', 'H49', 'H37', 'H55', 'H38', 'H1', 'H49', '', 'H60', 'H31', 'H31', 'H42', 'H10', 'H45'], 'H20': ['H4', 'H43', 'H8', 'H25', 'H1', 'H33', 'H13', 'H38', 'H63', 'H63', 'H33', 'H24', '', 'H28', 'H36', 'H11', 'H7', 'H35', 'H54', 'H25', 'H26', 'H51', 'H51', 'H32', 'H13', 'H60', 'H34', 'H63', 'H13', 'H26'], 'H15': ['H46', 'H42', '', 'H16', 'H14', 'H40', 'H46', 'H65', 'H51', 'H31', 'H35', 'H49', 'H24', 'H64', 'H3', 'H26', 'H54', '', 'H63', 'H27', 'H9', 'H58', 'H49', 'H18', 'H9', 'H37', 'H58', 'H41', 'H41', 'H1'], 'H16': ['H10', 'H50', 'H56', 'H1', 'H4', 'H40', 'H18', 'H49', 'H32', 'H23', 'H19', 'H30', 'H9', 'H45', 'H35', 'H4', 'H17', 'H43', 'H44', 'H38', '', '', 'H53', 'H19', 'H58', 'H27', 'H61', '', 'H37', 'H15'], 'H17': ['H54', 'H35', 'H36', 'H41', 'H61', 'H12', 'H21', 'H46', 'H11', 'H12', 'H52', 'H20', 'H36', '', 'H8', 'H21', 'H64', 'H22', 'H41', 'H54', 'H37', 'H41', 'H37', 'H25', 'H22', 'H48', 'H12', 'H40', 'H40', 'H55'], 'H18': ['H43', 'H24', 'H34', 'H51', 'H3', 'H60', 'H44', 'H48', 'H20', 'H28', 'H6', 'H61', 'H43', 'H23', 'H46', 'H45', 'H37', 'H30', 'H55', 'H32', 'H41', 'H38', 'H13', 'H20', 'H47', 'H48', 'H13', 'H23', 'H61', 'H42'], 'H19': ['H28', 'H33', 'H46', 'H64', '', 'H64', 'H9', 'H4', 'H38', 'H27', 'H6', 'H18', '', 'H12', 'H3', 'H48', 'H35', 'H60', 'H53', 'H21', 'H38', 'H2', 'H57', 'H55', 'H65', 'H60', 'H22', 'H8', 'H30', 'H6'], 'H23': ['H10', 'H45', 'H20', 'H30', 'H63', 'H9', '', 'H12', 'H26', 'H8', 'H6', 'H57', 'H55', 'H39', 'H12', 'H34', 'H36', 'H41', 'H33', '', 'H51', 'H30', 'H48', '', 'H2', 'H39', 'H53', 'H42', 'H43', 'H33'], 'H24': ['H36', 'H34', 'H48', 'H20', 'H16', 'H37', 'H35', 'H5', 'H40', 'H4', 'H17', 'H63', 'H28', 'H2', 'H26', 'H44', 'H59', 'H22', '', 'H59', 'H30', 'H32', 'H26', 'H32', 'H43', 'H7', '', 'H5', 'H61', 'H41'], 'H25': ['H54', 'H33', 'H59', 'H40', 'H9', 'H29', 'H5', 'H49', 'H65', 'H56', 'H45', 'H61', 'H57', 'H28', 'H20', 'H42', 'H54', 'H58', 'H38', 'H65', 'H43', 'H51', 'H43', 'H53', 'H38', 'H33', 'H32', 'H46', 'H60', 'H20'], 'H26': ['H44', 'H46', 'H12', 'H48', '', 'H19', 'H34', 'H13', 'H54', 'H35', 'H5', 'H2', 'H7', 'H53', 'H59', 'H36', 'H46', 'H45', 'H17', 'H44', 'H47', 'H40', 'H9', 'H58', 'H5', 'H22', 'H41', 'H20', 'H50', 'H30'], 'H27': ['H7', 'H46', 'H40', 'H45', 'H50', 'H6', 'H2', 'H28', 'H5', 'H64', 'H53', 'H31', 'H56', 'H65', 'H16', 'H38', 'H56', 'H22', 'H37', 'H21', 'H15', 'H44', 'H15', 'H63', 'H30', 'H37', 'H45', 'H50', 'H29', 'H7'], 'H28': ['H33', 'H41', 'H24', 'H3', 'H34', 'H31', 'H65', 'H3', 'H49', '', 'H43', 'H25', 'H58', '', 'H19', 'H26', 'H13', 'H50', 'H41', 'H3', 'H34', 'H59', 'H16', 'H33', 'H55', 'H43', 'H12', 'H8', 'H8', 'H56'], 'H29': ['H39', 'H35', 'H27', 'H63', 'H45', 'H23', 'H18', 'H52', 'H5', 'H2', 'H53', 'H24', 'H19', 'H24', 'H34', 'H35', 'H4', 'H32', 'H37', 'H35', 'H38', 'H14', 'H2', 'H3', 'H47', 'H52', 'H47', 'H31', 'H43', 'H55'], 'H32': ['H56', '', 'H31', 'H55', 'H65', 'H23', 'H64', 'H53', 'H48', 'H64', '', 'H30', 'H18', 'H15', 'H5', 'H29', 'H9', 'H26', 'H45', 'H17', 'H1', 'H8', 'H29', 'H20', 'H22', 'H63', 'H37', 'H23', 'H20', 'H18'], 'H33': ['H1', 'H47', 'H18', 'H41', 'H58', 'H50', 'H51', 'H37', 'H59', 'H16', 'H53', 'H64', '', 'H2', '', 'H24', 'H55', 'H49', 'H62', '', 'H34', 'H50', '', 'H51', 'H27', 'H17', 'H10', 'H42', 'H22', 'H15'], 'H34': ['H54', 'H60', 'H39', 'H12', 'H32', 'H22', 'H5', 'H42', 'H1', 'H52', 'H62', 'H45', 'H37', '', 'H39', 'H57', 'H16', 'H12', 'H32', 'H62', 'H63', 'H52', 'H28', 'H33', 'H15', 'H58', 'H23', '', 'H43', 'H37'], 'H35': ['H20', 'H39', 'H41', 'H25', 'H18', 'H36', 'H53', 'H5', 'H2', '', 'H15', 'H26', 'H48', 'H14', 'H50', 'H27', 'H39', '', 'H61', 'H12', 'H23', 'H14', 'H34', 'H37', 'H65', 'H25', 'H39', 'H31', 'H36', 'H64'], 'H36': ['H4', 'H56', '', 'H57', 'H59', 'H57', 'H24', 'H15', 'H21', 'H8', 'H35', 'H34', 'H28', 'H65', '', 'H21', 'H2', 'H40', 'H17', 'H38', 'H2', 'H24', 'H47', 'H63', 'H61', 'H61', '', 'H35', 'H42', 'H51'], 'H37': ['H39', 'H26', 'H12', 'H38', 'H33', '', 'H45', 'H12', 'H57', 'H47', 'H3', 'H65', 'H11', 'H29', 'H14', 'H25', 'H49', 'H3', 'H17', '', 'H12', 'H63', 'H21', 'H1', 'H43', 'H48', 'H19', 'H15', 'H59', 'H39'], 'H40': ['', 'H45', 'H63', 'H6', 'H61', 'H22', 'H15', 'H13', 'H25', 'H58', 'H57', 'H4', 'H42', 'H57', 'H26', 'H33', 'H41', 'H30', 'H61', 'H50', 'H18', '', 'H35', 'H48', 'H10', 'H9', 'H57', 'H65', 'H64', 'H21'], 'H41': ['H2', 'H18', 'H35', 'H43', 'H25', 'H30', 'H36', 'H16', 'H5', '', '', 'H47', 'H55', 'H32', '', 'H43', 'H52', 'H30', 'H14', 'H14', '', 'H56', 'H28', 'H54', 'H20', 'H54', 'H47', 'H55', 'H48', 'H5'], 'H42': ['H44', 'H43', 'H24', 'H56', 'H55', 'H53', 'H28', 'H44', '', 'H32', 'H35', 'H17', 'H12', 'H8', 'H14', '', 'H32', 'H32', 'H4', 'H22', 'H32', 'H54', 'H56', 'H5', 'H38', 'H4', 'H36', 'H6', 'H10', 'H53'], 'H43': ['H57', 'H62', 'H31', 'H48', 'H38', 'H26', 'H32', 'H21', 'H18', 'H23', 'H1', 'H23', 'H50', '', 'H20', 'H5', 'H30', 'H23', 'H65', 'H13', 'H7', 'H10', 'H65', 'H41', 'H15', 'H49', 'H3', 'H58', '', 'H4'], 'H44': ['H34', 'H63', 'H11', 'H8', 'H21', 'H55', 'H11', 'H10', 'H54', 'H6', 'H16', 'H50', 'H23', 'H45', 'H7', 'H45', 'H19', 'H47', 'H28', 'H33', '', 'H42', 'H61', 'H26', 'H65', 'H3', 'H15', 'H18', '', 'H30'], 'H45': ['H12', 'H58', 'H63', 'H41', 'H63', 'H33', 'H11', 'H4', 'H63', 'H11', 'H44', 'H29', 'H23', 'H13', 'H24', 'H40', 'H44', 'H16', 'H13', 'H7', 'H20', 'H5', 'H26', 'H2', 'H11', 'H14', 'H31', 'H41', 'H25', 'H56'], 'H46': ['H65', '', 'H30', '', 'H47', 'H33', 'H41', 'H48', 'H24', 'H65', 'H50', 'H5', 'H54', 'H29', 'H27', 'H15', 'H61', 'H19', 'H61', 'H3', 'H64', 'H20', '', 'H63', 'H58', 'H65', 'H27', 'H12', 'H36', 'H56'], 'H49': ['H13', '', 'H4', 'H7', 'H5', 'H63', '', 'H36', 'H21', 'H52', 'H56', 'H10', 'H12', 'H14', 'H39', 'H38', 'H25', '', 'H28', 'H32', 'H57', 'H11', '', 'H55', 'H19', 'H64', 'H61', 'H22', 'H50', 'H9'], 'H50': ['', 'H21', 'H45', 'H32', '', 'H61', 'H25', 'H10', 'H8', 'H42', 'H52', 'H60', 'H44', 'H26', 'H53', 'H47', 'H48', 'H7', 'H54', 'H19', 'H59', 'H6', 'H35', 'H14', 'H24', 'H41', 'H24', 'H40', 'H10', 'H40'], 'H51': ['H38', 'H2', 'H31', 'H8', 'H28', 'H61', 'H26', 'H30', 'H7', '', 'H7', 'H49', 'H42', 'H60', 'H15', 'H65', 'H29', 'H47', 'H57', 'H57', 'H2', 'H29', '', 'H22', 'H15', '', 'H28', 'H2', 'H39', 'H52'], 'H52': ['H6', 'H39', 'H43', 'H28', 'H31', 'H23', 'H20', 'H6', 'H6', 'H2', 'H17', '', 'H23', 'H54', 'H53', 'H48', 'H64', '', 'H11', 'H12', 'H42', 'H5', 'H3', 'H23', 'H39', 'H25', 'H5', 'H18', '', 'H30'], 'H53': ['H1', 'H43', 'H7', 'H41', 'H20', 'H43', 'H43', 'H4', '', 'H63', 'H29', 'H51', 'H25', 'H3', 'H29', 'H21', 'H28', 'H47', 'H58', 'H26', 'H41', 'H8', 'H21', 'H2', 'H31', 'H24', 'H56', 'H58', 'H21', 'H35'], 'H54': ['H25', 'H55', 'H32', 'H25', 'H21', 'H7', 'H45', 'H30', 'H63', 'H64', 'H40', 'H12', 'H36', 'H62', 'H44', 'H13', 'H8', 'H12', 'H6', '', 'H18', 'H36', 'H49', 'H57', 'H58', 'H41', 'H43', 'H50', 'H32', ''], 'H55': ['H63', 'H59', 'H49', 'H51', 'H31', 'H4', 'H49', 'H32', 'H64', 'H47', 'H59', 'H54', 'H10', 'H1', 'H45', 'H62', 'H38', 'H49', 'H38', 'H27', 'H27', 'H54', 'H18', 'H50', 'H15', 'H61', 'H7', 'H58', 'H25', 'H57'], 'H58': ['H1', 'H59', 'H1', 'H2', 'H5', 'H13', 'H53', 'H22', 'H1', 'H4', '', 'H18', 'H31', 'H7', 'H3', 'H6', 'H1', 'H45', 'H63', 'H28', 'H61', 'H60', 'H65', 'H8', 'H8', 'H24', 'H41', 'H44', 'H60', 'H50'], 'H59': ['H38', 'H35', 'H9', '', 'H64', 'H49', '', 'H56', 'H57', 'H12', '', 'H15', 'H11', 'H37', 'H54', 'H47', 'H53', 'H39', '', 'H49', 'H65', '', 'H37', 'H60', '', 'H29', 'H17', 'H49', 'H14', 'H51'], 'H60': ['H5', 'H31', 'H7', 'H49', '', 'H36', 'H62', 'H33', 'H56', 'H51', 'H65', 'H54', 'H45', 'H43', 'H65', 'H55', 'H57', 'H55', 'H62', 'H58', 'H7', 'H8', 'H31', 'H42', 'H5', 'H25', 'H41', 'H4', 'H18', 'H3'], 'H61': ['H31', 'H59', 'H37', 'H9', 'H12', 'H64', 'H54', 'H33', 'H37', 'H64', 'H10', 'H65', 'H49', 'H17', 'H22', 'H12', 'H49', 'H40', 'H11', 'H2', 'H40', 'H20', 'H19', 'H23', 'H49', 'H16', 'H55', 'H42', 'H6', ''], 'H62': ['H15', 'H10', 'H11', 'H10', 'H37', '', 'H52', 'H31', 'H49', 'H7', 'H5', 'H49', 'H22', 'H59', 'H30', 'H31', 'H64', 'H10', 'H13', 'H6', 'H8', 'H11', 'H40', 'H47', 'H64', 'H14', 'H11', 'H28', 'H61', 'H23'], 'H63': ['H28', 'H8', 'H2', 'H6', 'H17', 'H15', 'H51', 'H25', 'H15', 'H48', 'H45', 'H64', 'H60', 'H21', 'H56', 'H2', 'H28', '', 'H16', 'H45', 'H43', 'H40', 'H49', 'H10', 'H23', 'H43', 'H29', 'H26', 'H39', 'H40'], 
+                                        'H5': ['H15', 'H16', 'H34', 'H50', 'H38', 'H55', 'H61', 'H48', 'H8', 'H11', 'H59', 'H40', 'H56', 'H63', 'H41', 'H24', 'H40', 'H12', 'H4', 'H8', 'H42', '', '', 'H22', 'H6', 'H9', 'H11', 'H1', '', 'H33'], 
+                                        'H6': ['H17', 'H57', 'H12', 'H48', 'H62', 'H29', 'H49', 'H33', 'H53', 'H26', 'H16', 'H16', 'H37', 'H20', 'H52', 'H45', 'H7', 'H34', 'H45', 'H41', 'H18', 'H46', 'H30', 'H64', '', 'H5', 'H62', 'H1', 'H63', 'H10'],
+                                        'H7': ['H33', 'H13', 'H51', '', 'H14', 'H29', 'H62', 'H59', 'H38', 'H16', 'H38', 'H8', 'H35', '', 'H42', 'H11', 'H8', 'H24', 'H39', 'H50', 'H38', 'H23', 'H27', 'H54', '', 'H55', '', 'H50', 'H40', 'H34'], 
+                                        'H9': ['H41', 'H45', 'H2', 'H59', 'H29', 'H14', 'H10', '', 'H41', 'H10', 'H13', 'H20', 'H33', '', 'H55', 'H6', 'H28', 'H31', 'H55', 'H49', 'H48', 'H20', 'H58', 'H13', 'H17', 'H64', 'H8', 'H13', 'H19', 'H14'], 
+                                        'H10': ['H12', '', 'H57', 'H3', 'H24', 'H51', 'H46', 'H18', 'H52', 'H39', 'H3', 'H47', 'H38', 'H22', 'H61', 'H24', 'H24', 'H43', 'H1', 'H51', 'H62', 'H58', 'H37', 'H3', '', 'H49', 'H16', 'H41', '', 'H53'], 
+                                        'H14': ['H36', 'H62', 'H6', 'H18', 'H52', 'H42', 'H59', 'H56', 'H13', 'H37', 'H4', 'H9', 'H37', 'H65', 'H7', 'H37', 'H61', 'H51', 'H36', '', 'H63', 'H2', 'H12', 'H40', 'H54', 'H52', 'H55', 'H32', 'H34', 'H45'], 
+                                        'H11': ['H25', 'H29', '', 'H40', 'H13', '', 'H60', 'H8', 'H30', 'H44', 'H40', 'H49', '', 'H9', 'H46', 'H31', '', 'H49', 'H37', 'H55', 'H38', 'H1', 'H49', '', 'H60', 'H31', 'H31', 'H42', 'H10', 'H45'], 
+                                        'H20': ['H4', 'H43', 'H8', 'H25', 'H1', 'H33', 'H13', 'H38', 'H63', 'H63', 'H33', 'H24', '', 'H28', 'H36', 'H11', 'H7', 'H35', 'H54', 'H25', 'H26', 'H51', 'H51', 'H32', 'H13', 'H60', 'H34', 'H63', 'H13', 'H26'], 
+                                        'H15': ['H46', 'H42', '', 'H16', 'H14', 'H40', 'H46', 'H65', 'H51', 'H31', 'H35', 'H49', 'H24', 'H64', 'H3', 'H26', 'H54', '', 'H63', 'H27', 'H9', 'H58', 'H49', 'H18', 'H9', 'H37', 'H58', 'H41', 'H41', 'H1'],
+                                        'H16': ['H10', 'H50', 'H56', 'H1', 'H4', 'H40', 'H18', 'H49', 'H32', 'H23', 'H19', 'H30', 'H9', 'H45', 'H35', 'H4', 'H17', 'H43', 'H44', 'H38', '', '', 'H53', 'H19', 'H58', 'H27', 'H61', '', 'H37', 'H15'], 
+                                        'H17': ['H54', 'H35', 'H36', 'H41', 'H61', 'H12', 'H21', 'H46', 'H11', 'H12', 'H52', 'H20', 'H36', '', 'H8', 'H21', 'H64', 'H22', 'H41', 'H54', 'H37', 'H41', 'H37', 'H25', 'H22', 'H48', 'H12', 'H40', 'H40', 'H55'], 
+                                        'H18': ['H43', 'H24', 'H34', 'H51', 'H3', 'H60', 'H44', 'H48', 'H20', 'H28', 'H6', 'H61', 'H43', 'H23', 'H46', 'H45', 'H37', 'H30', 'H55', 'H32', 'H41', 'H38', 'H13', 'H20', 'H47', 'H48', 'H13', 'H23', 'H61', 'H42'], 
+                                        'H19': ['H28', 'H33', 'H46', 'H64', '', 'H64', 'H9', 'H4', 'H38', 'H27', 'H6', 'H18', '', 'H12', 'H3', 'H48', 'H35', 'H60', 'H53', 'H21', 'H38', 'H2', 'H57', 'H55', 'H65', 'H60', 'H22', 'H8', 'H30', 'H6'], 
+                                        'H23': ['H10', 'H45', 'H20', 'H30', 'H63', 'H9', '', 'H12', 'H26', 'H8', 'H6', 'H57', 'H55', 'H39', 'H12', 'H34', 'H36', 'H41', 'H33', '', 'H51', 'H30', 'H48', '', 'H2', 'H39', 'H53', 'H42', 'H43', 'H33'], 
+                                        'H24': ['H36', 'H34', 'H48', 'H20', 'H16', 'H37', 'H35', 'H5', 'H40', 'H4', 'H17', 'H63', 'H28', 'H2', 'H26', 'H44', 'H59', 'H22', '', 'H59', 'H30', 'H32', 'H26', 'H32', 'H43', 'H7', '', 'H5', 'H61', 'H41'], 
+                                        'H25': ['H54', 'H33', 'H59', 'H40', 'H9', 'H29', 'H5', 'H49', 'H65', 'H56', 'H45', 'H61', 'H57', 'H28', 'H20', 'H42', 'H54', 'H58', 'H38', 'H65', 'H43', 'H51', 'H43', 'H53', 'H38', 'H33', 'H32', 'H46', 'H60', 'H20'],
+                                        'H26': ['H44', 'H46', 'H12', 'H48', '', 'H19', 'H34', 'H13', 'H54', 'H35', 'H5', 'H2', 'H7', 'H53', 'H59', 'H36', 'H46', 'H45', 'H17', 'H44', 'H47', 'H40', 'H9', 'H58', 'H5', 'H22', 'H41', 'H20', 'H50', 'H30'], 
+                                        'H27': ['H7', 'H46', 'H40', 'H45', 'H50', 'H6', 'H2', 'H28', 'H5', 'H64', 'H53', 'H31', 'H56', 'H65', 'H16', 'H38', 'H56', 'H22', 'H37', 'H21', 'H15', 'H44', 'H15', 'H63', 'H30', 'H37', 'H45', 'H50', 'H29', 'H7'], 'H28': ['H33', 'H41', 'H24', 'H3', 'H34', 'H31', 'H65', 'H3', 'H49', '', 'H43', 'H25', 'H58', '', 'H19', 'H26', 'H13', 'H50', 'H41', 'H3', 'H34', 'H59', 'H16', 'H33', 'H55', 'H43', 'H12', 'H8', 'H8', 'H56'], 'H29': ['H39', 'H35', 'H27', 'H63', 'H45', 'H23', 'H18', 'H52', 'H5', 'H2', 'H53', 'H24', 'H19', 'H24', 'H34', 'H35', 'H4', 'H32', 'H37', 'H35', 'H38', 'H14', 'H2', 'H3', 'H47', 'H52', 'H47', 'H31', 'H43', 'H55'], 'H32': ['H56', '', 'H31', 'H55', 'H65', 'H23', 'H64', 'H53', 'H48', 'H64', '', 'H30', 'H18', 'H15', 'H5', 'H29', 'H9', 'H26', 'H45', 'H17', 'H1', 'H8', 'H29', 'H20', 'H22', 'H63', 'H37', 'H23', 'H20', 'H18'], 'H33': ['H1', 'H47', 'H18', 'H41', 'H58', 'H50', 'H51', 'H37', 'H59', 'H16', 'H53', 'H64', '', 'H2', '', 'H24', 'H55', 'H49', 'H62', '', 'H34', 'H50', '', 'H51', 'H27', 'H17', 'H10', 'H42', 'H22', 'H15'], 'H34': ['H54', 'H60', 'H39', 'H12', 'H32', 'H22', 'H5', 'H42', 'H1', 'H52', 'H62', 'H45', 'H37', '', 'H39', 'H57', 'H16', 'H12', 'H32', 'H62', 'H63', 'H52', 'H28', 'H33', 'H15', 'H58', 'H23', '', 'H43', 'H37'], 'H35': ['H20', 'H39', 'H41', 'H25', 'H18', 'H36', 'H53', 'H5', 'H2', '', 'H15', 'H26', 'H48', 'H14', 'H50', 'H27', 'H39', '', 'H61', 'H12', 'H23', 'H14', 'H34', 'H37', 'H65', 'H25', 'H39', 'H31', 'H36', 'H64'], 'H36': ['H4', 'H56', '', 'H57', 'H59', 'H57', 'H24', 'H15', 'H21', 'H8', 'H35', 'H34', 'H28', 'H65', '', 'H21', 'H2', 'H40', 'H17', 'H38', 'H2', 'H24', 'H47', 'H63', 'H61', 'H61', '', 'H35', 'H42', 'H51'], 'H37': ['H39', 'H26', 'H12', 'H38', 'H33', '', 'H45', 'H12', 'H57', 'H47', 'H3', 'H65', 'H11', 'H29', 'H14', 'H25', 'H49', 'H3', 'H17', '', 'H12', 'H63', 'H21', 'H1', 'H43', 'H48', 'H19', 'H15', 'H59', 'H39'], 'H40': ['', 'H45', 'H63', 'H6', 'H61', 'H22', 'H15', 'H13', 'H25', 'H58', 'H57', 'H4', 'H42', 'H57', 'H26', 'H33', 'H41', 'H30', 'H61', 'H50', 'H18', '', 'H35', 'H48', 'H10', 'H9', 'H57', 'H65', 'H64', 'H21'], 'H41': ['H2', 'H18', 'H35', 'H43', 'H25', 'H30', 'H36', 'H16', 'H5', '', '', 'H47', 'H55', 'H32', '', 'H43', 'H52', 'H30', 'H14', 'H14', '', 'H56', 'H28', 'H54', 'H20', 'H54', 'H47', 'H55', 'H48', 'H5'], 'H42': ['H44', 'H43', 'H24', 'H56', 'H55', 'H53', 'H28', 'H44', '', 'H32', 'H35', 'H17', 'H12', 'H8', 'H14', '', 'H32', 'H32', 'H4', 'H22', 'H32', 'H54', 'H56', 'H5', 'H38', 'H4', 'H36', 'H6', 'H10', 'H53'], 'H43': ['H57', 'H62', 'H31', 'H48', 'H38', 'H26', 'H32', 'H21', 'H18', 'H23', 'H1', 'H23', 'H50', '', 'H20', 'H5', 'H30', 'H23', 'H65', 'H13', 'H7', 'H10', 'H65', 'H41', 'H15', 'H49', 'H3', 'H58', '', 'H4'], 'H44': ['H34', 'H63', 'H11', 'H8', 'H21', 'H55', 'H11', 'H10', 'H54', 'H6', 'H16', 'H50', 'H23', 'H45', 'H7', 'H45', 'H19', 'H47', 'H28', 'H33', '', 'H42', 'H61', 'H26', 'H65', 'H3', 'H15', 'H18', '', 'H30'], 'H45': ['H12', 'H58', 'H63', 'H41', 'H63', 'H33', 'H11', 'H4', 'H63', 'H11', 'H44', 'H29', 'H23', 'H13', 'H24', 'H40', 'H44', 'H16', 'H13', 'H7', 'H20', 'H5', 'H26', 'H2', 'H11', 'H14', 'H31', 'H41', 'H25', 'H56'], 'H46': ['H65', '', 'H30', '', 'H47', 'H33', 'H41', 'H48', 'H24', 'H65', 'H50', 'H5', 'H54', 'H29', 'H27', 'H15', 'H61', 'H19', 'H61', 'H3', 'H64', 'H20', '', 'H63', 'H58', 'H65', 'H27', 'H12', 'H36', 'H56'], 'H49': ['H13', '', 'H4', 'H7', 'H5', 'H63', '', 'H36', 'H21', 'H52', 'H56', 'H10', 'H12', 'H14', 'H39', 'H38', 'H25', '', 'H28', 'H32', 'H57', 'H11', '', 'H55', 'H19', 'H64', 'H61', 'H22', 'H50', 'H9'], 'H50': ['', 'H21', 'H45', 'H32', '', 'H61', 'H25', 'H10', 'H8', 'H42', 'H52', 'H60', 'H44', 'H26', 'H53', 'H47', 'H48', 'H7', 'H54', 'H19', 'H59', 'H6', 'H35', 'H14', 'H24', 'H41', 'H24', 'H40', 'H10', 'H40'], 'H51': ['H38', 'H2', 'H31', 'H8', 'H28', 'H61', 'H26', 'H30', 'H7', '', 'H7', 'H49', 'H42', 'H60', 'H15', 'H65', 'H29', 'H47', 'H57', 'H57', 'H2', 'H29', '', 'H22', 'H15', '', 'H28', 'H2', 'H39', 'H52'], 'H52': ['H6', 'H39', 'H43', 'H28', 'H31', 'H23', 'H20', 'H6', 'H6', 'H2', 'H17', '', 'H23', 'H54', 'H53', 'H48', 'H64', '', 'H11', 'H12', 'H42', 'H5', 'H3', 'H23', 'H39', 'H25', 'H5', 'H18', '', 'H30'], 'H53': ['H1', 'H43', 'H7', 'H41', 'H20', 'H43', 'H43', 'H4', '', 'H63', 'H29', 'H51', 'H25', 'H3', 'H29', 'H21', 'H28', 'H47', 'H58', 'H26', 'H41', 'H8', 'H21', 'H2', 'H31', 'H24', 'H56', 'H58', 'H21', 'H35'], 'H54': ['H25', 'H55', 'H32', 'H25', 'H21', 'H7', 'H45', 'H30', 'H63', 'H64', 'H40', 'H12', 'H36', 'H62', 'H44', 'H13', 'H8', 'H12', 'H6', '', 'H18', 'H36', 'H49', 'H57', 'H58', 'H41', 'H43', 'H50', 'H32', ''], 'H55': ['H63', 'H59', 'H49', 'H51', 'H31', 'H4', 'H49', 'H32', 'H64', 'H47', 'H59', 'H54', 'H10', 'H1', 'H45', 'H62', 'H38', 'H49', 'H38', 'H27', 'H27', 'H54', 'H18', 'H50', 'H15', 'H61', 'H7', 'H58', 'H25', 'H57'], 'H58': ['H1', 'H59', 'H1', 'H2', 'H5', 'H13', 'H53', 'H22', 'H1', 'H4', '', 'H18', 'H31', 'H7', 'H3', 'H6', 'H1', 'H45', 'H63', 'H28', 'H61', 'H60', 'H65', 'H8', 'H8', 'H24', 'H41', 'H44', 'H60', 'H50'], 'H59': ['H38', 'H35', 'H9', '', 'H64', 'H49', '', 'H56', 'H57', 'H12', '', 'H15', 'H11', 'H37', 'H54', 'H47', 'H53', 'H39', '', 'H49', 'H65', '', 'H37', 'H60', '', 'H29', 'H17', 'H49', 'H14', 'H51'], 'H60': ['H5', 'H31', 'H7', 'H49', '', 'H36', 'H62', 'H33', 'H56', 'H51', 'H65', 'H54', 'H45', 'H43', 'H65', 'H55', 'H57', 'H55', 'H62', 'H58', 'H7', 'H8', 'H31', 'H42', 'H5', 'H25', 'H41', 'H4', 'H18', 'H3'], 'H61': ['H31', 'H59', 'H37', 'H9', 'H12', 'H64', 'H54', 'H33', 'H37', 'H64', 'H10', 'H65', 'H49', 'H17', 'H22', 'H12', 'H49', 'H40', 'H11', 'H2', 'H40', 'H20', 'H19', 'H23', 'H49', 'H16', 'H55', 'H42', 'H6', ''], 'H62': ['H15', 'H10', 'H11', 'H10', 'H37', '', 'H52', 'H31', 'H49', 'H7', 'H5', 'H49', 'H22', 'H59', 'H30', 'H31', 'H64', 'H10', 'H13', 'H6', 'H8', 'H11', 'H40', 'H47', 'H64', 'H14', 'H11', 'H28', 'H61', 'H23'], 'H63': ['H28', 'H8', 'H2', 'H6', 'H17', 'H15', 'H51', 'H25', 'H15', 'H48', 'H45', 'H64', 'H60', 'H21', 'H56', 'H2', 'H28', '', 'H16', 'H45', 'H43', 'H40', 'H49', 'H10', 'H23', 'H43', 'H29', 'H26', 'H39', 'H40'], 
                                         'H64': ['H55', 'H20', 'H12', 'H40', 'H29', '', 'H20', 'H28', 'H15', 'H61', '', 'H6', 'H1', 'H2', 'H29', '', 'H28', 'H26', 'H42', 'H1', 'H24', 'H41', '', 'H41', 'H49', 'H7', 'H18', 'H30', 'H25', '']
                                         }
+        #self.communication_sequences = generate_traffic_sequence_service_provider(self)
+
         self.all_tms = {}
         self.graph_has_data = True
         
         self.graph_topology = pickle.load(open("intranet_network.pickle", "rb"))
+        #nx.draw(self.graph_topology, with_labels=True)
+        #plt.show()
         self.create_components(self.graph_topology) #creates nodes and edges
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
@@ -570,19 +615,21 @@ class NetworkEngine:
         #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
-        self.single_con_hosts = {}
+        #self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if len(self.graph_topology.edges(host)) == 1]  
+        #print("single con hosts: ", self.single_con_hosts)
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         
         #generate_traffic_sequence_service_provider(self)
 
-        self.all_tms = json.load(open("tms_service_provider.json", mode="r"))
+        self.all_tms = json.load(open("tms_service_provider_35.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
 
+        
+
     def get_nx_topology(self):
         return self.graph_topology
-
 
 
 def generate_traffic_sequence(network=None):
@@ -600,8 +647,34 @@ def generate_traffic_sequence(network=None):
             dsts = communications.get(host, [])
             dsts.append(dst)
             communications[host] = dsts
-    #print("\n comunications: ", communications)
+    print("\n comunications: ", communications)
     #print("\n bws: ", bws)
+    return  communications
+
+def generate_traffic_sequence_arpanet(network=None):
+    if not network:
+      network = NetworkEngine()
+    #network = pickle.load(open("topology_arpanet.pickle", "rb"))
+    hosts = network.get_all_hosts()
+    print("\n generating traffic matrix")
+    print("\n hosts: ", hosts)
+    bws = {}
+    communications = {}
+    list_all_communications = []
+    
+    for j in range(100):
+        for host in hosts:
+            bws[host] = random.randint(10, 30)
+            for i in range(30):
+                dst = network.get_random_dst(host, hosts)
+                dsts = communications.get(host, [])
+                dsts.append(dst)
+                communications[host] = dsts
+        list_all_communications.append(communications)
+        communications = {}
+    print("\n comunications: ", communications)
+    print("\n bws: ", bws)
+    json.dump(list_all_communications, open("tms_arpanet.json", "w"), indent=4)
     return  communications
 
 def generate_traffic_sequence_service_provider(network=None):
@@ -612,15 +685,17 @@ def generate_traffic_sequence_service_provider(network=None):
     communications = {}
     list_all_communications = []
 
-    start = ['H8', 'H22', 'H39', 'H57']
-    end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
+    start = ['H8', 'H13', 'H22', 'H31', 'H39', 'H48','H57','H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
+    #end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
     
-    for j in range(10):
+    for j in range(100):
+        random_sample = random.sample(hosts, 35)
         #communications[j] = {}
-        for host in hosts:
+        #for host in hosts:
+        for host in random_sample:
         #for host in start:
             #print("\n host: ", host)
-            bws[host] = random.randint(20, 50)
+            bws[host] = random.randint(10, 30)
             for i in range(30):
                 dst = network.get_random_dst(host, hosts)
                 #dst = random.choice(end)
@@ -633,8 +708,22 @@ def generate_traffic_sequence_service_provider(network=None):
             #print("communications host: ", communications[j])
         list_all_communications.append(communications)
         communications = {}
+    
+    """for host in start:
+        #print("\n host: ", host)
+        bws[host] = random.randint(20, 50)
+        for i in range(30):
+            dst = network.get_random_dst(host, end)
+            dsts = communications.get(host, [])
+            #print("\n dsts: ", dsts)
+            dsts.append(dst)
+            communications[host] = dsts
+            #print("communications host: ", communications[j][host])
+        #print("communications host: ", communications[j])
+    #ist_all_communications.append(communications)
+    #communications = {}"""
 
     #print("\n comunications: ", communications)
     #print("\n bws: ", bws)
-    json.dump(list_all_communications, open("tms_service_provider.json", "w"), indent=4)
+    #json.dump(list_all_communications, open("tms_service_provider_35.json", "w"), indent=4)
     return  communications

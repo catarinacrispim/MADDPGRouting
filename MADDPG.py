@@ -54,10 +54,18 @@ class MADDPG:
         actor_future_input, future_state, done_flags = experience.sample_buffer()
 
         processing_device = self.agents[0].actor.device
-        current_state = T.tensor(current_state, dtype=T.float).to(processing_device)
-        action_taken = T.tensor(action_taken, dtype=T.float).to(processing_device)
-        reward_obtained = T.tensor(reward_obtained, dtype=T.float).to(processing_device)
-        future_state = T.tensor(future_state, dtype=T.float).to(processing_device)
+        current_state_array = np.array(current_state, dtype=np.float32)
+        current_state = T.tensor(current_state_array, dtype=T.float).to(processing_device)
+        #current_state = T.tensor(current_state, dtype=T.float).to(processing_device)
+
+        action_taken_array = np.array(action_taken, dtype=np.float32)
+        action_taken = T.tensor(action_taken_array, dtype=T.float).to(processing_device)
+
+        reward_obtained_array = np.array(reward_obtained, dtype=np.float32)
+        reward_obtained = T.tensor(reward_obtained_array, dtype=T.float).to(processing_device)
+
+        future_state_array = np.array(future_state, dtype=np.float32)
+        future_state = T.tensor(future_state_array, dtype=T.float).to(processing_device)
         done_flags = T.tensor(done_flags).to(processing_device)
 
         all_new_actions = []
@@ -148,10 +156,8 @@ if __name__ == '__main__':
     if not EVALUATE:
         nr_epochs = NR_EPOCHS
     else:
-        if MODIFIED_NETWORK == "bw":
+        if MODIFIED_NETWORK == "edges":
             nr_epochs = 4
-        elif MODIFIED_NETWORK == "edges":
-            nr_epochs = 2
         elif MODIFIED_NETWORK == "intranet":
             nr_epochs = 2
 
@@ -214,10 +220,8 @@ if __name__ == '__main__':
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
-            if MODIFIED_NETWORK == "bw": 
-                eng.set_different_topology_bw(epoch)
-            elif MODIFIED_NETWORK == "edges": 
-                eng.set_different_topology_edges()
+            if MODIFIED_NETWORK == "edges": 
+                eng.set_different_topology_edges(epoch)
             elif MODIFIED_NETWORK == "intranet":
                 eng.set_different_topology_intranet()
 
@@ -248,6 +252,7 @@ if __name__ == '__main__':
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
+                print("\nnext dsts: ", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -270,7 +275,6 @@ if __name__ == '__main__':
                         dismiss_indexes.append(index)
                     else:
                         state = all_dst_states
-                        base_state = all_dst_states
 
                     states.append(state)
 
@@ -308,8 +312,9 @@ if __name__ == '__main__':
                             action = random.randint(0, 2)
                         else:
                             action = actions[index]
-                        #if host in eng.single_con_hosts:
-                        #    action = 0                        #algoritmo tradicional
+                        if TOPOLOGY_TYPE == "small_network":
+                            if (host in eng.single_con_hosts):
+                                action = 0                        #algoritmo tradicional
 
                         actions_dict[host] = {next_dsts.get(host, ''): action}
 
@@ -354,7 +359,6 @@ if __name__ == '__main__':
                     break
             
             available_bw_episode[e] = np.average(available_bw_time_steps)
-            
             available_bw_episode_2[e] = np.average(eng.get_link_usage())
             
             ## DATA

@@ -40,8 +40,13 @@ class Agent:
         self.gnn = GNNNetwork(alpha, actor_dims, fa1, fa2)#, n_actions)#, name=self.agent_name+'_gnn', load_file=self.load_name+'_gnn')
  
     def choose_action(self, observation, edge_index): #topology: nx.Graph
-        state = T.tensor([observation], dtype=T.float).to(self.actor.device)
-        #print("\n state: ", state)
+        #print("\nobservation: ", observation)
+        observation_array = np.array([observation], dtype=np.float32)
+        #print("\nobservation array []: ", observation_array)
+        state = T.tensor(observation_array, dtype=T.float).to(self.actor.device)
+        #print("\nstate observation array: ", state)
+        #state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+        #print("\nstate [observation]: ", state)
         if GNN_MODULE:
             #print("\n adjacency matrix: ", T.tensor(nx.adjacency_matrix(topology)))
             print("\n\n edge index : ", edge_index) 
@@ -85,8 +90,8 @@ class Agent:
 
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
-        #action = actions ##
-        action = actions + noise
+        action = actions ##
+        #action = actions + noise
         return action.detach().cpu().numpy()[0]
 
     def update_network_parameters(self, tau=None):
@@ -196,8 +201,8 @@ class ActorNetwork(nn.Module):
         self.load_file = f'/home/{PATH_SIMULATION}/agent_files{SIM_NR}/{load_file}.sync'
 
         self.fc1 = nn.Linear(input_dims, fc1_dims)
-        self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
-        self.pi = nn.Linear(fc2_dims, n_actions)
+        #self.fc2 = nn.Linear(fc1_dims, fc2_dims) ##
+        self.pi = nn.Linear(fc1_dims, n_actions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
@@ -206,7 +211,8 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         x = F.relu(self.fc1(state))            #activation function
-        x = F.relu(self.fc2(x)) ##
+        #x = F.relu(self.fc2(x)) ##
+        #x = self.fc2(x)
         pi = T.softmax(self.pi(x), dim=1)      #hidden layer -> output
 
         return pi

@@ -19,7 +19,7 @@ def add_link(self, source, destination, link_options):
 
 
 #graph = pickle.load(open('small_network.pickle', 'rb'))
-TOPOLOGY_FILE_NAME = "/home/student/MADDPGRouting/topology.txt"
+TOPOLOGY_FILE_NAME = "/home/student/MADDPGRouting/topology_arpanet.txt"
 G = nx.Graph()
 
 with open(TOPOLOGY_FILE_NAME, 'r') as topo:
@@ -30,8 +30,8 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
             if node[0] == 'S':
                 #node = f"H{node[1:]}"
                 node = int(node[1:]) - 1
-            else:
-                 continue
+            elif node [0] == 'H':
+                node = int(node[1:]) -1 +20 #for arpanet
             if not G.has_node(node):
                 G.add_node(node)
         
@@ -41,13 +41,20 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
         if nodes[0][0] == 'S':
                 #nodes[0] = f"H{nodes[0][1:]}"
                 nodes[0] = int(nodes[0][1:]) - 1
-        else:
-             continue
+        #else:
+        #     continue
+        elif nodes[0][0] == 'H':
+                nodes[0] = int(nodes[0][1:]) -1 +20 #for arpanet
+        
         if nodes[1][0] == 'S':
                 #nodes[1] = f"H{nodes[1][1:]}"
                 nodes[1] = int(nodes[1][1:]) - 1
-        else: 
-            continue
+        #else: 
+        #    continue
+        elif nodes[1][0] == 'H':
+                #nodes[1] = f"H{nodes[1][1:]}"
+                nodes[1] = int(nodes[1][1:]) - 1 + 20 #arpanet
+        
         G.add_edge(nodes[0], nodes[1], bw = int(bw))
 
 # from networkaigym "containernet_api_topo.py"
@@ -75,7 +82,7 @@ print("\n edges: ", G.edges(data=True))
 print("\n Original", G)
 nx.draw(G, with_labels=True)
 
-#pickle.dump(G, open("intranet_network.pickle", "wb"))
+pickle.dump(G, open("topology_arpanet.pickle", "wb"))
 
 plt.show()
 
