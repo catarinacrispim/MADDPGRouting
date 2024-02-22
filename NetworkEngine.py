@@ -74,7 +74,8 @@ class NetworkEngine:
         self.calculate_paths()
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
+        #nr transmitted packets : packets tried to transmit
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
                                  len(self.graph_topology.edges(host)) == 1]
 
@@ -178,7 +179,7 @@ class NetworkEngine:
         # self.build_graph()
         # self.calculate_paths()
         self.number_of_hosts = len(self.get_all_hosts())
-        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
 
         # if new_tm:
         #  self.communication_sequences = generate_traffic_sequence(self)
@@ -322,6 +323,7 @@ class NetworkEngine:
             else:
                 if bw > 0:
                     src.active_dst = destiny
+                    self.statistics["nr_transmitted_packets"] += 1
                 else:
                     src.active_dst = -1
 
@@ -415,6 +417,8 @@ class NetworkEngine:
         hostC: NetworkComponent
         links = []
         #get neighbors
+        #print("\n hostc neighbors: ", hostC.neighbors)
+        #print("\n shape: ", len(hostC.neighbors))
         for neighbor in hostC.neighbors:
             links.append(self.get_link(host, neighbor))
 
@@ -423,7 +427,7 @@ class NetworkEngine:
         link: Link
         #get available bw for the neighbours
         for index, link in enumerate(links):
-            state[index] = link.get_bw_available_percentage() / 100
+            state[index] = link.get_bw_available_percentage() #/ 100
 
         next_dest = hostC.get_next_dst()
         if not next_dest:
@@ -439,6 +443,7 @@ class NetworkEngine:
 
         state[-1] = self.bws.get(host, 0) / 100
 
+        #print("\n state: ", state)
         return state
 
     def set_active_path(self, host, dsts):
@@ -470,7 +475,7 @@ class NetworkEngine:
         self.calculate_paths()
         self.hosts = self.get_all_hosts()
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
                                  len(self.graph_topology.edges(host)) == 1]   
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
@@ -1595,7 +1600,7 @@ class NetworkEngine:
 
         print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if len(self.graph_topology.edges(host)) == 1]  
         print("single con hosts: ", self.single_con_hosts)
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
@@ -1669,7 +1674,7 @@ class NetworkEngine:
 
         #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
-        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0}
+        self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         #self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if len(self.graph_topology.edges(host)) == 1]  
         #print("single con hosts: ", self.single_con_hosts)
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}

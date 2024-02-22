@@ -217,6 +217,9 @@ if __name__ == '__main__':
         total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0
+
+        total_package_loss_nr = 0
+        total_packets_sent_nr = 0
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
@@ -244,8 +247,10 @@ if __name__ == '__main__':
             total_reward = 0
             total_package_loss = 0
             total_packets_sent = 0
-            total_package_loss_nr = 0
-            total_packets_sent_nr = 0
+            if EVALUATE:
+                total_package_loss_nr = 0
+                total_packets_sent_nr = 0
+            total_packets_tried_nr = 0
             available_bw_time_steps = np.zeros(100)
             
             for time_steps in range(100):
@@ -380,6 +385,7 @@ if __name__ == '__main__':
 
             total_package_loss_nr = eng.statistics['nr_package_loss']
             total_packets_sent_nr =  eng.statistics['nr_package_sent']
+            total_packets_tried_nr = eng.statistics['nr_transmitted_packets']
 
             experience_pck_lost += total_epoch_pck_loss
             experience_pck_sent += total_epoch_pck_sent
@@ -442,7 +448,8 @@ if __name__ == '__main__':
             data_file.write(f"Available bandwidth 2 ({index}): {available_bw_epoch[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:
-        data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
+        #data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
+        data_file.write(f"Packets lost when training {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
         data_file.write(f"{NOTES}\n")
     data_file.close    
 
