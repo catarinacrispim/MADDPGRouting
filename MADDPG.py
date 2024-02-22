@@ -252,7 +252,7 @@ if __name__ == '__main__':
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
-                print("\nnext dsts: ", next_dsts)
+                #print("\nnext dsts: ", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -312,7 +312,7 @@ if __name__ == '__main__':
                             action = random.randint(0, 2)
                         else:
                             action = actions[index]
-                        if TOPOLOGY_TYPE == "small_network":
+                        if TOPOLOGY_TYPE == "small_network" or TOPOLOGY_TYPE == "arpanet":
                             if (host in eng.single_con_hosts):
                                 action = 0                        #algoritmo tradicional
 
