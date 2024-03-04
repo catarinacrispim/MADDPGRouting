@@ -167,7 +167,7 @@ if __name__ == '__main__':
     #create /home/student/agent_files directory if not found
     path = f'/home/{PATH_SIMULATION}/agent_files{SIM_NR}'
     if not os.path.exists(path):
-        print("Creating 'agent_files' directory")
+        print(f"Creating 'agent_files{SIM_NR}' directory")
         os.mkdir(path)
     #create /home/student/results directory if not found
     path = f'/home/{PATH_SIMULATION}/results'

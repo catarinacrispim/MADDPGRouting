@@ -5,15 +5,15 @@ NR_ACTIVE_CONNECTIONS = 10
 NUMBER_OF_PATHS = 3
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 10     #epoch
-EPOCH_SIZE = 8    #episode
+NR_EPOCHS = 2000     #epoch
+EPOCH_SIZE = 200    #episode
 
-NOTES = "STATE_SIZE = NUMBER_OF_AGENTS * NUMBER_OF_AGENTS * NR_MAX_LINKS * 1"
+NOTES = " "
 
 GNN_MODULE = False
 
-PATH_SIMULATION = "student"
-#PATH_SIMULATION = "server2/Thesis"
+#PATH_SIMULATION = "student"
+PATH_SIMULATION = "server2/Thesis"
 SIM_NR = 0
 
 ### NETWORK TOPOLOGY TYPE ###
@@ -33,7 +33,7 @@ STATE_SIZE = NR_MAX_LINKS + 1 + NR_ACTIVE_CONNECTIONS * 2 + 1
 #3
 #CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
 #4
-CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
+#CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
 
 GRAPH_BATCH_SIZE = 5 #batch size for graph
 
