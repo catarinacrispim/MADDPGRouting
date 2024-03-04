@@ -445,7 +445,7 @@ class NetworkEngine:
 
         state[-1] = self.bws.get(host, 0) / 100  #get bw to send
 
-        print(f"\n state({host}) : ", state)
+        #print(f"\n state({host}) : ", state)
         return state
 
     def set_active_path(self, host, dsts):

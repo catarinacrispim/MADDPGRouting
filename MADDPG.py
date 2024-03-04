@@ -143,6 +143,10 @@ if __name__ == '__main__':
         critic_dim = STATE_SIZE
         #critic = state
         critic_dims = [critic_dim for host in all_hosts]
+    elif CRITIC_DOMAIN == "shortest":
+        critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS
+        critic_dims = [critic_dim for i in range(NUMBER_OF_AGENTS)]
+
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
                            fa1=10, fa2=80, fc1=15, fc2=80,
@@ -257,7 +261,7 @@ if __name__ == '__main__':
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
-                print("\nnext dsts: ", next_dsts)
+                #print("\nnext dsts: ", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -296,8 +300,9 @@ if __name__ == '__main__':
                 #edge_index = T.stack([int_hosts, int_array], dim=0)
                 #print("\n", T.stack([int_hosts, int_array], dim=0))
 
-                ##tensor of edges in network        
-                edge_index = T.tensor(list(eng.get_nx_topology().edges), dtype=T.long).t().contiguous()      
+                ##tensor of edges in network     
+                edge_index = []   
+                #edge_index = T.tensor(list(eng.get_nx_topology().edges), dtype=T.long).t().contiguous()      
                 #edge_index = T.tensor(list(eng.get_nx_topology().edges))
                 #edge_index = list(eng.get_nx_topology().edges)
                 #edge_index = eng.get_nx_topology().edges
@@ -320,6 +325,8 @@ if __name__ == '__main__':
                         if TOPOLOGY_TYPE == "small_network" or TOPOLOGY_TYPE == "arpanet":
                             if (host in eng.single_con_hosts):
                                 action = 0                        #algoritmo tradicional
+                        if CRITIC_DOMAIN == "shortest":
+                            action = 0 #shortest path
 
                         actions_dict[host] = {next_dsts.get(host, ''): action}
 
@@ -351,7 +358,8 @@ if __name__ == '__main__':
                     else:
                         actions.append(actions_dict[host][next_dsts[host]])
 
-                memory.store_transition(states, actions, rewards, new_next_states, done, critic_states,
+                if CRITIC_DOMAIN != "shortest":
+                    memory.store_transition(states, actions, rewards, new_next_states, done, critic_states,
                                         all_critic_new_states)
 
 
@@ -372,7 +380,7 @@ if __name__ == '__main__':
             #print("Total package loss", ng.statistics['package_loss'])
             #print(" ")
 
-            if (e % 3 == 0 and not EVALUATE) or (EVALUATE and UPDATE_WEIGHTS):
+            if (e % 3 == 0 and not EVALUATE) or (EVALUATE and UPDATE_WEIGHTS) and CRITIC_DOMAIN != "shortest":
                 maddpg_agents.learn(memory)
 
             total_epoch_reward.append(total_reward)

@@ -5,7 +5,7 @@ NR_ACTIVE_CONNECTIONS = 10
 NUMBER_OF_PATHS = 3
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 30     #epoch
+NR_EPOCHS = 10     #epoch
 EPOCH_SIZE = 8    #episode
 
 NOTES = "STATE_SIZE = NUMBER_OF_AGENTS * NUMBER_OF_AGENTS * NR_MAX_LINKS * 1"
@@ -27,11 +27,13 @@ STATE_SIZE = NR_MAX_LINKS + 1 + NR_ACTIVE_CONNECTIONS * 2 + 1
 
 ### TRAIN COMBINATIONS ###
 #1 
-CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
+#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #2
 #CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #3
 #CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
+#4
+CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
 
 GRAPH_BATCH_SIZE = 3 #batch size for graph
 
