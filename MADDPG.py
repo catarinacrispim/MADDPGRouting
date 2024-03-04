@@ -376,7 +376,7 @@ if __name__ == '__main__':
             
             ## DATA
             print(f"episode {e}/{episode_size}, epoch {epoch}/{nr_epochs}")
-            #print("Total reward", total_reward)
+            print("Total reward", total_reward)
             #print("Total package loss", ng.statistics['package_loss'])
             #print(" ")
 
