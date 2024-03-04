@@ -6,23 +6,15 @@ from itertools import islice
 import networkx as nx
 import matplotlib.pyplot as plt
 
+G = pickle.load(open('small_network.pickle', 'rb'))
+#G = pickle.load(open('topology_arpanet.pickle', 'rb'))
+#G = pickle.load(open('service_provider_network.pickle', 'rb'))
 
-"""def add_switch(self, name):
-    if name not in self.network.keys():
-        self.switches[name.replace("S", "")] = name
-        self.network.addSwitch(name)
+#TOPOLOGY_FILE_NAME = "/home/student/MADDPGRouting/topology_arpanet.txt"
+#TOPOLOGY_FILE_NAME = "/home/student/MADDPGRouting/topology.txt"
+#G = nx.Graph()
 
-def add_link(self, source, destination, link_options):
-    if not self.network.linksBetween(self.network.get(source), self.network.get(destination)):
-        self.network.addLink(self.network.get(
-            source), self.network.get(destination), **link_options) """ 
-
-
-#graph = pickle.load(open('small_network.pickle', 'rb'))
-TOPOLOGY_FILE_NAME = "/home/student/MADDPGRouting/topology_arpanet.txt"
-G = nx.Graph()
-
-with open(TOPOLOGY_FILE_NAME, 'r') as topo:
+"""with open(TOPOLOGY_FILE_NAME, 'r') as topo:
     for line in topo.readlines():
         data = line.split()
         nodes = line.split()[:2]
@@ -30,10 +22,10 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
             if node[0] == 'S':
                 #node = f"H{node[1:]}"
                 node = int(node[1:]) - 1
-            elif node [0] == 'H':
-                node = int(node[1:]) -1 +20 #for arpanet
-            if not G.has_node(node):
-                G.add_node(node)
+            #elif node [0] == 'H':
+            #    node = int(node[1:]) -1 +20 #for arpanet
+                if not G.has_node(node):
+                    G.add_node(node)
         
         #bw = int(data[2])/10
         bw = int(data[2])
@@ -41,48 +33,32 @@ with open(TOPOLOGY_FILE_NAME, 'r') as topo:
         if nodes[0][0] == 'S':
                 #nodes[0] = f"H{nodes[0][1:]}"
                 nodes[0] = int(nodes[0][1:]) - 1
-        #else:
-        #     continue
-        elif nodes[0][0] == 'H':
-                nodes[0] = int(nodes[0][1:]) -1 +20 #for arpanet
+        else:
+             continue
+        #elif nodes[0][0] == 'H':
+        #        nodes[0] = int(nodes[0][1:]) -1 +20 #for arpanet
         
         if nodes[1][0] == 'S':
                 #nodes[1] = f"H{nodes[1][1:]}"
                 nodes[1] = int(nodes[1][1:]) - 1
-        #else: 
-        #    continue
-        elif nodes[1][0] == 'H':
-                #nodes[1] = f"H{nodes[1][1:]}"
-                nodes[1] = int(nodes[1][1:]) - 1 + 20 #arpanet
+        else: 
+            continue
+        #elif nodes[1][0] == 'H':
+        #        #nodes[1] = f"H{nodes[1][1:]}"
+        #        nodes[1] = int(nodes[1][1:]) - 1 + 20 #arpanet
         
-        G.add_edge(nodes[0], nodes[1], bw = int(bw))
+        G.add_edge(nodes[0], nodes[1], bw = int(bw))"""
 
-# from networkaigym "containernet_api_topo.py"
-"""with open("/home/student/MADDPGRouting/topology.txt", 'r') as topology:
-    for line in topology.readlines():
-        cols = line.split()
-        for node in cols[:2]:
-            if node[0] == 'S':
-                add_switch(node)
-            else:
-                add_host(node, container_params)
-
-        link_bw = int(cols[2])
-        if len(cols) < 4:
-            link_options = dict(bw=link_bw)
-        else:
-            link_options = dict(
-                bw=link_bw, delay=f'{cols[3]}ms', loss=float(cols[4]))
-        add_link(cols[0], cols[1], link_options)
-        bw_capacity[(cols[0], cols[1])] = link_bw
-        bw_capacity[(cols[1], cols[0])] = link_bw"""
+degrees = G.degree()
+max_degree = max(degrees, key=lambda x: x[1]) 
 
 print("\n nodes: ", G.nodes())
 print("\n edges: ", G.edges(data=True))
 print("\n Original", G)
+print("\nmax number of connections: ", max_degree[1])
 nx.draw(G, with_labels=True)
 
-pickle.dump(G, open("topology_arpanet.pickle", "wb"))
+#pickle.dump(G, open("topology_arpanet.pickle", "wb"))
 
 plt.show()
 

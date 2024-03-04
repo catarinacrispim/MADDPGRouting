@@ -427,7 +427,7 @@ class NetworkEngine:
         link: Link
         #get available bw for the neighbours
         for index, link in enumerate(links):
-            state[index] = link.get_bw_available_percentage() #/ 100
+            state[index] = link.get_bw_available_percentage() / 100
 
         next_dest = hostC.get_next_dst()
         if not next_dest:
@@ -435,15 +435,17 @@ class NetworkEngine:
         else:
             next_dest = int(next_dest[1:]) / 10
 
-        state[NR_MAX_LINKS] = next_dest
+        state[NR_MAX_LINKS] = next_dest #save current communication dest
 
-        active_communication = np.array(hostC.get_active_communications()).flatten()
+        active_communication = np.array(hostC.get_active_communications()).flatten() #get active communications
+        #print("\nactive communication array: ", np.array(hostC.get_active_communications()))
+        #print("\nactive communication: ", active_communication)
         for index, active in enumerate(active_communication):
             state[index + NR_MAX_LINKS + 1] = active / 10
 
-        state[-1] = self.bws.get(host, 0) / 100
+        state[-1] = self.bws.get(host, 0) / 100  #get bw to send
 
-        #print("\n state: ", state)
+        print(f"\n state({host}) : ", state)
         return state
 
     def set_active_path(self, host, dsts):
@@ -1663,7 +1665,7 @@ class NetworkEngine:
         self.all_tms = {}
         self.graph_has_data = True
         
-        self.graph_topology = pickle.load(open("intranet_network.pickle", "rb"))
+        self.graph_topology = pickle.load(open("service_provider_network.pickle", "rb"))
         #nx.draw(self.graph_topology, with_labels=True)
         #plt.show()
         self.create_components(self.graph_topology) #creates nodes and edges

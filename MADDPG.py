@@ -112,8 +112,6 @@ class MADDPG:
 
 
 if __name__ == '__main__':
-    #row = 9324
-    #col = 1
     #UPDATE_STEPS = 16
     
     eng = NetworkEngine()
@@ -189,6 +187,7 @@ if __name__ == '__main__':
 
     if not EVALUATE:
         #graph_y_axis = np.zeros(NR_EPOCHS)
+        y_axis_training = np.zeros(NR_EPOCHS)
         #graph_x_axis = np.zeros(NR_EPOCHS)
         batch_aux = int(NR_EPOCHS/GRAPH_BATCH_SIZE)
         graph_y_axis = np.zeros(batch_aux)
@@ -212,14 +211,15 @@ if __name__ == '__main__':
     available_bw_epoch = np.zeros(nr_epochs)
     available_bw_epoch_2 = np.zeros(nr_epochs)
 
+    total_package_loss_nr = 0
+    total_packets_sent_nr = 0
+    total_packets_tried_nr = 0
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0
 
-        total_package_loss_nr = 0
-        total_packets_sent_nr = 0
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
@@ -250,14 +250,14 @@ if __name__ == '__main__':
             if EVALUATE:
                 total_package_loss_nr = 0
                 total_packets_sent_nr = 0
-            total_packets_tried_nr = 0
+                total_packets_tried_nr = 0
             available_bw_time_steps = np.zeros(100)
             
             for time_steps in range(100):
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()
-                #print("\nnext dsts: ", next_dsts)
+                print("\nnext dsts: ", next_dsts)
                 all_dsts = []
                 for host in all_hosts:
                     if host in next_dsts and next_dsts[host]:
@@ -392,21 +392,24 @@ if __name__ == '__main__':
             # print(f"STATISTICS OG {eng.statistics}")
 
             total_rewards.append(total_reward)
-            batch_rewards.append(total_reward)
+            #batch_rewards.append(total_reward)
 
             if EVALUATE: #and UPDATE_WEIGHTS:
                 graph_y_axis[epoch][e] = int(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
             ### episode ends
-
+        
+        
         #print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
         if not EVALUATE:
             #graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)  #average
+            y_axis_training[epoch] = sum(total_epoch_reward) / len(total_epoch_reward) #for saving in the training file
+            batch_rewards.append(y_axis_training[epoch]) #save average of epoch
             if ((epoch+1) % GRAPH_BATCH_SIZE) == 0:
                 batch_index = int(((epoch+1) / GRAPH_BATCH_SIZE)-1)
-                graph_y_axis[batch_index] = sum(batch_rewards) / len(batch_rewards)
+                graph_y_axis[batch_index] = sum(batch_rewards)    #/ len(batch_rewards)
                 batch_rewards = []
 
         if epoch % 20 == 0: ##30
@@ -416,6 +419,15 @@ if __name__ == '__main__':
             if not EVALUATE:
                 maddpg_agents.save_checkpoint()
                 print("SAVING")
+
+        #saving data while training in data file, so data can be accessed while training
+        if not EVALUATE and (epoch+1)%100 == 0:
+            #data_file_path = "/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_while_training.csv"            
+            x = np.arange(0, NR_EPOCHS)
+            #np.savetxt(data_file_path, (x, y_axis_training), delimiter=',')
+            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_while_training.csv", (x, y_axis_training), delimiter=',')
+
+
 
         #print(total_epoch_pck_loss)
 
@@ -449,8 +461,10 @@ if __name__ == '__main__':
         data_file.write(f"{NOTES}\n")
     else:
         #data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
-        data_file.write(f"Packets lost when training {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
-        data_file.write(f"{NOTES}\n")
+        data_file.write(f"Packets lost training \"lost_nr/(lost_nr+sent_nr)\" : {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
+        data_file.write(f"Packets lost training \"lost_nr/(tried_ nr)\" : {round(total_package_loss_nr/(total_packets_tried_nr) * 100, 2)}% \n")
+        data_file.write(f"Packets sent training \"sent_nr/(tried_ nr)\" : {round(total_packets_sent_nr/(total_packets_tried_nr) * 100, 2)}% \n")
+        data_file.write(f"\n{NOTES}\n")
     data_file.close    
 
     ## Build graph
@@ -460,7 +474,7 @@ if __name__ == '__main__':
         #interval_data = [value for index, value in enumerate(graph_y_axis) if index % interval == 0]
         #graph_x_axis = np.arange(0, len(interval_data))
         
-        #graph_x_axis = np.arange(0, NR_EPOCHS)
+        x = np.arange(0, NR_EPOCHS)
         
         if CRITIC_DOMAIN == "central_critic":
             plt.title(f"Total reward per epoch - central critic")
@@ -478,6 +492,8 @@ if __name__ == '__main__':
         else:
             plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
             np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_total.csv", (x, y_axis_training), delimiter=',')
+
         plt.show()
     elif EVALUATE: # and UPDATE_WEIGHTS:
         graph_x_axis = np.arange(0, episode_size)
@@ -489,7 +505,7 @@ if __name__ == '__main__':
         plt.legend()
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
-        plt.title(f"Rewards - evaluate")
+        plt.title(f"Rewards - Evaluate")
         
         plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
         #np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
