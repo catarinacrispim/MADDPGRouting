@@ -429,7 +429,7 @@ if __name__ == '__main__':
                 print("SAVING")
 
         #saving data while training in data file, so data can be accessed while training
-        if not EVALUATE and (epoch+1)%100 == 0:
+        if not EVALUATE and (epoch+1)%50 == 0:
             #data_file_path = "/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_while_training.csv"            
             x = np.arange(0, NR_EPOCHS)
             #np.savetxt(data_file_path, (x, y_axis_training), delimiter=',')
