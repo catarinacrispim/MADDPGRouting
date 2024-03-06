@@ -152,6 +152,7 @@ if __name__ == '__main__':
                            fa1=10, fa2=80, fc1=15, fc2=80,
                            alpha=0.0001, beta=0.0001, tau=0.0001,
                            chkpt_dir='.\\tmp\\maddpg\\')
+    #alfa 0.0001
 
     memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, batch_size=100)
     

@@ -27,7 +27,7 @@ STATE_SIZE = NR_MAX_LINKS + 1 + NR_ACTIVE_CONNECTIONS * 2 + 1
 
 ### TRAIN COMBINATIONS ###
 #1 
-#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
+CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #2
 #CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #3
