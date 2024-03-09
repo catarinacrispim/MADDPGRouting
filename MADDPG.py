@@ -14,7 +14,8 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, GRAPH_BATCH_SIZE, NUMBER_OF_PATHS
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, NUMBER_OF_PATHS
+#, GRAPH_BATCH_SIZE
 
 
 class MADDPG:
@@ -157,10 +158,8 @@ if __name__ == '__main__':
     if not EVALUATE:
         nr_epochs = NR_EPOCHS
     else:
-        if MODIFIED_NETWORK == "edges":
+        if MODIFIED_NETWORK == "remove_edges":
             nr_epochs = 4
-        elif MODIFIED_NETWORK == "intranet":
-            nr_epochs = 2
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
@@ -190,12 +189,12 @@ if __name__ == '__main__':
     os.mkdir(folder_path)
 
     if not EVALUATE:
-        #graph_y_axis = np.zeros(NR_EPOCHS)
+        graph_y_axis = np.zeros(NR_EPOCHS)
         y_axis_training = np.zeros(NR_EPOCHS)
-        #graph_x_axis = np.zeros(NR_EPOCHS)
-        batch_aux = int(NR_EPOCHS/GRAPH_BATCH_SIZE)
-        graph_y_axis = np.zeros(batch_aux)
-        graph_x_axis = np.arange(0, batch_aux)
+        graph_x_axis = np.zeros(NR_EPOCHS)
+        #batch_aux = int(NR_EPOCHS/GRAPH_BATCH_SIZE)
+        #graph_y_axis = np.zeros(batch_aux)
+        #graph_x_axis = np.arange(0, batch_aux)
     elif EVALUATE: # and UPDATE_WEIGHTS:
         graph_x_axis = np.zeros(EPOCH_SIZE*4)
         aux = np.zeros(EPOCH_SIZE*4) 
@@ -227,10 +226,8 @@ if __name__ == '__main__':
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
-            if MODIFIED_NETWORK == "edges": 
+            if MODIFIED_NETWORK == "remove_edges": 
                 eng.set_different_topology_edges(epoch)
-            elif MODIFIED_NETWORK == "intranet":
-                eng.set_different_topology_intranet()
 
         if not EVALUATE:
             episode_size = EPOCH_SIZE
@@ -322,7 +319,7 @@ if __name__ == '__main__':
                             action = random.randint(0, 2)
                         else:
                             action = actions[index]
-                        if TOPOLOGY_TYPE == "small_network" or TOPOLOGY_TYPE == "arpanet":
+                        if TOPOLOGY_TYPE == "internet" or TOPOLOGY_TYPE == "arpanet":
                             if (host in eng.single_con_hosts):
                                 action = 0                        #algoritmo tradicional
                         if CRITIC_DOMAIN == "shortest":
@@ -414,11 +411,11 @@ if __name__ == '__main__':
         if not EVALUATE:
             #graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)  #average
             y_axis_training[epoch] = sum(total_epoch_reward) / len(total_epoch_reward) #for saving in the training file
-            batch_rewards.append(y_axis_training[epoch]) #save average of epoch
-            if ((epoch+1) % GRAPH_BATCH_SIZE) == 0:
-                batch_index = int(((epoch+1) / GRAPH_BATCH_SIZE)-1)
-                graph_y_axis[batch_index] = sum(batch_rewards)    #/ len(batch_rewards)
-                batch_rewards = []
+            #batch_rewards.append(y_axis_training[epoch]) #save average of epoch
+            # if ((epoch+1) % GRAPH_BATCH_SIZE) == 0:
+            #     batch_index = int(((epoch+1) / GRAPH_BATCH_SIZE)-1)
+            #     graph_y_axis[batch_index] = sum(batch_rewards)    #/ len(batch_rewards)
+            #     batch_rewards = []
 
         if epoch % 20 == 0: ##30
             print(f"\n AVERGAE WAS {sum(total_rewards) / len(total_rewards)}")
@@ -453,28 +450,23 @@ if __name__ == '__main__':
         data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
         data_file.write(f"Packets lost Original network (number): {percentage_2[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n")
-        data_file.write(f"Available bandwidth 2: {available_bw_epoch[0]}% \n\n")
+        data_file.write(f"Available bandwidth 2: {available_bw_epoch_2[0]}% \n\n")
         for index in range(1, nr_epochs):
             data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
             data_file.write(f"Packets lost Modified network (number) ({index}): {percentage_2[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n")
-            data_file.write(f"Available bandwidth 2 ({index}): {available_bw_epoch[index]}% \n\n")
+            data_file.write(f"Available bandwidth 2 ({index}): {available_bw_epoch_2[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:
         #data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
-        data_file.write(f"Packets lost training \"lost_nr/(lost_nr+sent_nr)\" : {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
+        #data_file.write(f"Packets lost training \"lost_nr/(lost_nr+sent_nr)\" : {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
         data_file.write(f"Packets lost training \"lost_nr/(tried_ nr)\" : {round(total_package_loss_nr/(total_packets_tried_nr) * 100, 2)}% \n")
-        data_file.write(f"Packets sent training \"sent_nr/(tried_ nr)\" : {round(total_packets_sent_nr/(total_packets_tried_nr) * 100, 2)}% \n")
+        #data_file.write(f"Packets sent training \"sent_nr/(tried_ nr)\" : {round(total_packets_sent_nr/(total_packets_tried_nr) * 100, 2)}% \n")
         data_file.write(f"\n{NOTES}\n")
     data_file.close    
 
     ## Build graph
     if not EVALUATE:
-        ##only show a few resulta
-        #interval = 5
-        #interval_data = [value for index, value in enumerate(graph_y_axis) if index % interval == 0]
-        #graph_x_axis = np.arange(0, len(interval_data))
-        
         x = np.arange(0, NR_EPOCHS)
         
         if CRITIC_DOMAIN == "central_critic":
@@ -485,8 +477,8 @@ if __name__ == '__main__':
         plt.xlabel("Epochs")
         plt.ylabel("Reward")
         plt.legend()
-        plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
-        #plt.plot(graph_x_axis, interval_data, label = {NEURAL_NETWORK})
+        #plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
+        plt.plot(graph_x_axis, y_axis_training, label = {NEURAL_NETWORK})
         plt.savefig(f"{folder_path}/{sub_path}.png")
         np.savetxt(f"{folder_path}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         np.savetxt(f"{folder_path}/data_total.csv", (x, y_axis_training), delimiter=',')

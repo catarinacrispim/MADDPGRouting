@@ -5,8 +5,8 @@ NR_ACTIVE_CONNECTIONS = 10
 NUMBER_OF_PATHS = 3
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 10     #epoch
-EPOCH_SIZE = 10    #episode
+NR_EPOCHS = 2     #epoch
+EPOCH_SIZE = 2    #episode
 
 NOTES = " "
 
@@ -17,7 +17,7 @@ PATH_SIMULATION = "/home/student"
 SIM_NR = 0
 
 ### NETWORK TOPOLOGY TYPE ###
-#TOPOLOGY_TYPE = "small_network"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25; NR_MAX_LINKS = 11
+#TOPOLOGY_TYPE = "internet"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25; NR_MAX_LINKS = 11
 #TOPOLOGY_TYPE = "arpanet"; NUMBER_OF_HOSTS = 33; NUMBER_OF_AGENTS = 33; NR_MAX_LINKS = 6
 TOPOLOGY_TYPE = "service_provider"; NUMBER_OF_HOSTS = 65; NUMBER_OF_AGENTS = 65; NR_MAX_LINKS = 4
 
@@ -35,12 +35,11 @@ CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #4
 #CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
 
-GRAPH_BATCH_SIZE = 5 #batch size for graph
+#GRAPH_BATCH_SIZE = 5 #batch size for graph
 
-EVALUATE = False; UPDATE_WEIGHTS = False
-#EVALUATE = True; UPDATE_WEIGHTS = False
+#EVALUATE = False; UPDATE_WEIGHTS = False
+EVALUATE = True; UPDATE_WEIGHTS = False
 #EVALUATE = True; UPDATE_WEIGHTS = True
 
 ### Modified Network In Evaluate  ###
-MODIFIED_NETWORK = "edges"
-#MODIFIED_NETWORK = "intranet"
+MODIFIED_NETWORK = "remove_edges"

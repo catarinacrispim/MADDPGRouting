@@ -78,19 +78,18 @@ class NetworkEngine:
         #nr transmitted packets : packets tried to transmit
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if
                                  len(self.graph_topology.edges(host)) == 1]
-
-        ##self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         #print(self.bws)
         #print(self.single_con_hosts)
 
         #nx.draw(self.graph_topology, with_labels=True)
         #plt.show()
-        
-        #print("\n")
+
         #print("communication sequences: ", '\n'.join([f"{key}: {value}" for key, value in self.communication_sequences.items()]))
         #print("\n len communication sequences: ", len(self.communication_sequences))
-        self.all_tms = json.load(open("all_tms_test.json", mode="r"))
-        #print("\n leu ficheiro all tms, com shape: ", len(self.all_tms))
+
+        #self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        self.all_tms = json.load(open("tms_internet_train.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)          #EPOCH_SIZE
         #print("\n current rm index: ", self.current_tm_index)
@@ -160,17 +159,17 @@ class NetworkEngine:
         self.components = {}
         self.create_components(self.graph_topology)
 
-        if not EVALUATE:
-            if new_tm:
-                self.current_tm_index += 1
-                self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
-                
-        else:
-            if new_tm:
-                if TOPOLOGY_TYPE == "small_network":
-                    self.communication_sequences = generate_traffic_sequence(self)
-                if TOPOLOGY_TYPE == "service_provider":
-                    self.communication_sequences = generate_traffic_sequence_service_provider(self)
+        #if not EVALUATE:
+        if new_tm:
+            self.current_tm_index += 1
+            self.communication_sequences = self.all_tms[self.current_tm_index % len(self.all_tms)] #EPOCH_SIZE
+            
+        # else:
+        #     if new_tm:
+        #         if TOPOLOGY_TYPE == "internet":
+        #             self.communication_sequences = generate_traffic_sequence(self)
+        #         if TOPOLOGY_TYPE == "service_provider":
+        #             self.communication_sequences = generate_traffic_sequence_service_provider(self)
 
 
         #print("new tm: ", self.communication_sequences)
@@ -480,11 +479,8 @@ class NetworkEngine:
         self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
                                  len(self.graph_topology.edges(host)) == 1]   
-        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
-        self.all_tms = json.load(open("all_tms_test.json", mode="r"))
-        self.current_index = 0
-        self.current_tm_index = self.current_index % len(self.all_tms)       
-        self.communication_sequences = self.all_tms[self.current_tm_index]
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        
     
     
     def set_different_topology_edges(self, mod):    
@@ -495,7 +491,7 @@ class NetworkEngine:
         elif mod == 3:
             nr_links_changed = 3
 
-        self.graph_topology = nx.Graph(pickle.load(open('small_network.pickle', 'rb')))
+        #self.graph_topology = nx.Graph(pickle.load(open('small_network.pickle', 'rb')))
         edges = []
         change = []
         for edge in self.graph_topology.edges():
@@ -512,17 +508,17 @@ class NetworkEngine:
         #print("\n Modified", self.graph_topology)
         #print("\n edges: ", self.graph_topology.edges(data=True))
         self.setup()
-
-    def set_different_topology_intranet(self):
-        #this approach evaluates the agents performance in a different graph arquitecture
-        n = 23 #num nodes
-        p = 0.15 # probability of edge creation
-        #self.graph_topology = nx.erdos_renyi_graph(n,p)
-        self.graph_topology = nx.barabasi_albert_graph(25, 2)
-        #self.build_graph()
-        #nx.draw(graph, with_labels=True)
-        #plt.show()
-        self.setup()
+        #self.all_tms = json.load(open("all_tms_test.json", mode="r"))
+        if TOPOLOGY_TYPE == "internet":
+            self.all_tms = json.load(open("tms_internet_test.json", mode="r"))
+        if TOPOLOGY_TYPE == "arpanet":
+            self.all_tms = json.load(open("tms_arpanet_test.json", mode="r"))
+        if TOPOLOGY_TYPE == "service_provider":
+            self.all_tms = json.load(open("tms_service_provider_test.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
+        
 
     def set_arpanet_topology(self):
         self.links = {}
@@ -531,9 +527,10 @@ class NetworkEngine:
         self.components = {}
         self.paths = {}
         self.bws = {}
+
         self.graph_topology = pickle.load(open("topology_arpanet.pickle", "rb"))
         self.communication_sequences = {"H21": [ "H5", "H5", "H33", "H25", "H27", "H27", "H3", "H24", "H11", "H16", "H2", "H10", "H15", "H29", "H3", "H33", "H19", "H14", "H25", "H32", "H11", "H2", "H33", "H24", "H13", "H31", "H3", "H25", "H6", "H14" ], "H1": [ "H15", "H29", "H32", "H5", "H8", "H29", "H32", "H2", "H18", "H20", "H4", "H33", "H18", "H29", "H8", "H15", "H14", "H16", "H31", "H28", "H9", "H22", "H11", "H27", "H32", "H9", "H25", "H24", "H18", "H4" ], "H22": [ "H13", "H32", "H12", "H25", "H12", "H7", "H3", "H25", "H24", "H7", "H19", "H28", "H2", "H8", "H5", "H25", "H10", "H27", "H3", "H32", "H8", "H21", "H25", "H28", "H20", "H17", "H12", "H27", "H4", "H32" ], "H2": [ "H30", "H20", "H14", "H14", "H14", "H5", "H17", "H23", "H21", "H20", "H3", "H22", "H18", "H23", "H28", "H28", "H4", "H26", "H19", "H9", "H27", "H11", "H4", "H28", "H15", "H30", "H14", "H26", "H16", "H7" ], "H23": [ "H12", "H11", "H14", "H26", "H32", "H6", "H27", "H1", "H13", "H16", "H17", "H17", "H30", "H26", "H7", "H9", "H22", "H15", "H28", "H24", "H21", "H29", "H33", "H16", "H19", "H33", "H1", "H8", "H5", "H9" ], "H3": [ "H20", "H19", "H20", "H30", "H22", "H13", "H18", "H24", "H22", "H14", "H23", "H31", "H25", "H27", "H27", "H9", "H12", "H16", "H24", "H11", "H20", "H12", "H31", "H32", "H14", "H18", "H27", "H24", "H21", "H32" ], "H24": [ "H17", "H2", "H18", "H19", "H20", "H13", "H4", "H12", "H33", "H19", "H29", "H21", "H7", "H9", "H29", "H33", "H14", "H32", "H12", "H22", "H20", "H8", "H30", "H29", "H14", "H17", "H17", "H27", "H19", "H19" ], "H4": [ "H16", "H5", "H13", "H9", "H26", "H3", "H32", "H29", "H8", "H18", "H6", "H9", "H30", "H24", "H9", "H7", "H13", "H7", "H29", "H11", "H29", "H8", "H18", "H29", "H1", "H18", "H17", "H19", "H3", "H18" ], "H25": [ "H18", "H15", "H26", "H30", "H18", "H10", "H29", "H1", "H30", "H8", "H15", "H20", "H14", "H5", "H17", "H27", "H14", "H11", "H27", "H26", "H15", "H31", "H3", "H21", "H33", "H22", "H29", "H2", "H22", "H3" ], "H8": [ "H18", "H2", "H13", "H21", "H15", "H14", "H23", "H15", "H5", "H29", "H24", "H5", "H4", "H1", "H25", "H4", "H4", "H9", "H10", "H1", "H4", "H4", "H29", "H23", "H1", "H32", "H4", "H25", "H30", "H14" ], "H26": [ "H14", "H20", "H7", "H33", "H27", "H10", "H32", "H17", "H21", "H6", "H18", "H22", "H13", "H6", "H20", "H20", "H23", "H18", "H33", "H9", "H4", "H14", "H13", "H2", "H29", "H10", "H29", "H30", "H19", "H25" ], "H11": [ "H32", "H2", "H3", "H7", "H25", "H25", "H21", "H32", "H26", "H21", "H3", "H10", "H17", "H29", "H19", "H33", "H30", "H27", "H31", "H26", "H14", "H7", "H9", "H10", "H7", "H17", "H9", "H32", "H16", "H23" ], "H27": [ "H5", "H19", "H5", "H4", "H28", "H26", "H16", "H10", "H5", "H26", "H24", "H7", "H24", "H20", "H13", "H33", "H18", "H23", "H20", "H14", "H19", "H9", "H15", "H3", "H32", "H24", "H31", "H30", "H3", "H1" ], "H12": [ "H22", "H7", "H10", "H27", "H17", "H29", "H14", "H17", "H11", "H6", "H19", "H14", "H23", "H31", "H27", "H1", "H3", "H23", "H3", "H5", "H1", "H30", "H7", "H9", "H28", "H21", "H23", "H2", "H9", "H19" ], "H28": [ "H1", "H2", "H27", "H15", "H16", "H22", "H6", "H3", "H19", "H32", "H2", "H29", "H29", "H16", "H23", "H23", "H5", "H20", "H24", "H20", "H26", "H2", "H5", "H25", "H12", "H8", "H5", "H5", "H33", "H22" ], "H13": [ "H3", "H30", "H31", "H8", "H25", "H20", "H9", "H3", "H30", "H15", "H24", "H8", "H22", "H16", "H28", "H28", "H7", "H7", "H28", "H23", "H3", "H8", "H26", "H24", "H18", "H25", "H11", "H17", "H23", "H3" ], "H29": [ "H7", "H19", "H2", "H24", "H10", "H12", "H32", "H16", "H30", "H9", "H19", "H23", "H18", "H2", "H9", "H10", "H8", "H21", "H21", "H21", "H25", "H27", "H26", "H16", "H33", "H16", "H30", "H13", "H25", "H23" ], "H16": [ "H19", "H11", "H20", "H22", "H32", "H4", "H6", "H21", "H22", "H11", "H21", "H18", "H8", "H33", "H32", "H28", "H2", "H1", "H23", "H25", "H12", "H19", "H25", "H25", "H1", "H33", "H5", "H25", "H26", "H14" ], "H30": [ "H1", "H22", "H22", "H15", "H8", "H26", "H24", "H4", "H31", "H15", "H16", "H12", "H1", "H32", "H23", "H32", "H11", "H16", "H28", "H24", "H26", "H12", "H20", "H4", "H33", "H7", "H25", "H24", "H17", "H10" ], "H17": [ "H3", "H24", "H26", "H29", "H7", "H30", "H10", "H23", "H9", "H20", "H2", "H13", "H6", "H13", "H6", "H27", "H24", "H19", "H30", "H32", "H24", "H1", "H24", "H10", "H33", "H16", "H6", "H12", "H13", "H24" ], "H31": [ "H18", "H18", "H20", "H18", "H24", "H17", "H11", "H8", "H10", "H24", "H29", "H21", "H13", "H24", "H4", "H22", "H10", "H3", "H1", "H27", "H27", "H26", "H14", "H26", "H3", "H26", "H27", "H19", "H12", "H1" ], "H18": [ "H30", "H31", "H5", "H13", "H33", "H3", "H24", "H3", "H24", "H21", "H28", "H28", "H9", "H9", "H1", "H24", "H7", "H5", "H28", "H15", "H12", "H25", "H29", "H3", "H28", "H1", "H6", "H25", "H14", "H27" ], "H32": [ "H25", "H1", "H22", "H5", "H19", "H7", "H30", "H16", "H7", "H24", "H20", "H16", "H6", "H17", "H1", "H19", "H18", "H19", "H19", "H8", "H24", "H24", "H9", "H2", "H18", "H7", "H28", "H21", "H31", "H30" ], "H19": [ "H24", "H23", "H18", "H18", "H14", "H2", "H26", "H18", "H8", "H24", "H9", "H33", "H23", "H24", "H17", "H18", "H32", "H3", "H17", "H16", "H2", "H31", "H13", "H1", "H24", "H22", "H16", "H21", "H24", "H10" ], "H33": [ "H20", "H24", "H5", "H11", "H31", "H24", "H3", "H31", "H2", "H22", "H13", "H5", "H5", "H6", "H6", "H27", "H28", "H17", "H15", "H10", "H12", "H15", "H5", "H22", "H17", "H3", "H13", "H11", "H5", "H5" ], "H20": [ "H23", "H5", "H17", "H29", "H30", "H12", "H6", "H29", "H16", "H9", "H2", "H32", "H26", "H15", "H24", "H15", "H1", "H22", "H15", "H32", "H1", "H4", "H15", "H22", "H17", "H7", "H18", "H15", "H7", "H16" ], "H6": [ "H7", "H8", "H7", "H8", "H13", "H2", "H25", "H16", "H11", "H32", "H15", "H23", "H25", "H22", "H18", "H16", "H30", "H26", "H12", "H17", "H26", "H18", "H8", "H3", "H18", "H22", "H17", "H30", "H9", "H21" ], "H5": [ "H19", "H26", "H30", "H13", "H19", "H27", "H1", "H19", "H3", "H28", "H31", "H32", "H32", "H7", "H23", "H29", "H33", "H3", "H33", "H19", "H13", "H21", "H26", "H3", "H10", "H30", "H19", "H7", "H8", "H27" ], "H7": [ "H6", "H28", "H4", "H20", "H2", "H32", "H24", "H15", "H30", "H11", "H31", "H1", "H15", "H6", "H23", "H15", "H1", "H30", "H3", "H9", "H12", "H21", "H9", "H26", "H20", "H15", "H2", "H5", "H29", "H11" ], "H10": [ "H20", "H25", "H14", "H28", "H28", "H21", "H22", "H7", "H8", "H15", "H2", "H22", "H5", "H27", "H12", "H18", "H8", "H26", "H31", "H27", "H30", "H28", "H1", "H26", "H2", "H16", "H8", "H6", "H24", "H12" ], "H9": [ "H24", "H28", "H23", "H12", "H4", "H20", "H18", "H5", "H30", "H11", "H29", "H13", "H7", "H7", "H13", "H7", "H8", "H2", "H23", "H20", "H13", "H19", "H13", "H7", "H28", "H20", "H29", "H31", "H7", "H26" ], "H14": [ "H8", "H32", "H1", "H9", "H18", "H18", "H20", "H5", "H32", "H12", "H3", "H20", "H5", "H20", "H26", "H29", "H30", "H3", "H10", "H17", "H5", "H13", "H24", "H30", "H20", "H30", "H10", "H18", "H10", "H24" ], "H15": [ "H20", "H7", "H3", "H31", "H7", "H32", "H33", "H33", "H5", "H23", "H12", "H10", "H30", "H25", "H19", "H32", "H8", "H26", "H30", "H33", "H10", "H16", "H16", "H11", "H9", "H19", "H12", "H20", "H31", "H13" ] }
-        self.graph_has_data = True
+        #self.graph_has_data = True
         
         #nx.draw(self.graph_topology, with_labels=True)
         #plt.show()
@@ -541,19 +538,17 @@ class NetworkEngine:
         #self.communication_sequences = generate_traffic_sequence_arpanet(self)
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
-            self.bws[host] = random.randint(10, 25)
+            self.bws[host] = random.randint(10, 30)
         self.calculate_paths()
 
-        print("\n hosts: ", self.hosts)
+        #print("\n hosts: ", self.hosts)
         self.number_of_hosts = len(self.hosts)
         self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if len(self.graph_topology.edges(host)) == 1]  
-        print("single con hosts: ", self.single_con_hosts)
-        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+        #print("single con hosts: ", self.single_con_hosts)
+        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
         
-        #generate_traffic_sequence_arpanet(self)
-
-        self.all_tms = json.load(open("tms_arpanet.json", mode="r"))
+        self.all_tms = json.load(open("tms_arpanet_train.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
@@ -615,7 +610,7 @@ class NetworkEngine:
         self.create_components(self.graph_topology) #creates nodes and edges
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
-            self.bws[host] = random.randint(10, 25)
+            self.bws[host] = random.randint(50, 150)
         self.calculate_paths()
 
         #print("\n hosts: ", self.hosts)
@@ -627,7 +622,7 @@ class NetworkEngine:
         
         #generate_traffic_sequence_service_provider(self)
 
-        self.all_tms = json.load(open("tms_service_provider_35.json", mode="r"))
+        self.all_tms = json.load(open("tms_service_provider_train.json", mode="r"))
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
@@ -645,14 +640,32 @@ def generate_traffic_sequence(network=None):
     hosts = network.get_all_hosts()
     bws = {}
     communications = {}
+    list_all_communications = []
+    generate_traffic_matrix_file = False
 
-    for host in hosts:
-        bws[host] = random.randint(20, 50)
-        for i in range(30):
-            dst = network.get_random_dst(host, hosts)
-            dsts = communications.get(host, [])
-            dsts.append(dst)
-            communications[host] = dsts
+    if generate_traffic_matrix_file:
+        for j in range(500):
+            for host in hosts:
+                #print("\n host: ", host)
+                bws[host] = random.randint(10, 35)
+                for i in range(30):
+                    dst = network.get_random_dst(host, hosts)
+                    #print("\n dst: ", dst)
+                    dsts = communications.get(host, [])
+                    #print("\n dsts: ", dsts)
+                    dsts.append(dst)
+                    communications[host] = dsts
+            list_all_communications.append(communications)
+            communications = {}
+        json.dump(list_all_communications, open("tms_internet_test.json", "w"), indent=4)
+    else:
+        for host in hosts:
+            bws[host] = random.randint(20, 50)
+            for i in range(30):
+                dst = network.get_random_dst(host, hosts)
+                dsts = communications.get(host, [])
+                dsts.append(dst)
+                communications[host] = dsts
     print("\n comunications: ", communications)
     #print("\n bws: ", bws)
     return  communications
@@ -668,19 +681,19 @@ def generate_traffic_sequence_arpanet(network=None):
     communications = {}
     list_all_communications = []
     
-    #for j in range(100):
+    #for j in range(500):
     for host in hosts:
-        bws[host] = random.randint(10, 30)
+        bws[host] = random.randint(10, 35)
         for i in range(30):
             dst = network.get_random_dst(host, hosts)
             dsts = communications.get(host, [])
             dsts.append(dst)
             communications[host] = dsts
-    #list_all_communications.append(communications)
+    list_all_communications.append(communications)
     communications = {}
     print("\n comunications: ", communications)
     print("\n bws: ", bws)
-    #json.dump(list_all_communications, open("tms_arpanet.json", "w"), indent=4)
+    #json.dump(list_all_communications, open("tms_arpanet_test.json", "w"), indent=4)
     return  communications
 
 def generate_traffic_sequence_service_provider(network=None):
@@ -694,7 +707,7 @@ def generate_traffic_sequence_service_provider(network=None):
     start = ['H8', 'H13', 'H22', 'H31', 'H39', 'H48','H57','H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
     #end = ['H12', 'H30', 'H21', 'H38', 'H47', 'H56', 'H65']
     
-    for j in range(100):
+    for j in range(1000):
         #random_sample = random.sample(hosts, 35)
         #communications[j] = {}
         #for host in hosts:
@@ -702,7 +715,7 @@ def generate_traffic_sequence_service_provider(network=None):
         for host in start:
             #print("\n host: ", host)
             bws[host] = random.randint(10, 30)
-            for i in range(30):
+            for i in range(20):
                 dst = network.get_random_dst(host, hosts)
                 #dst = random.choice(end)
                 #print("\n dst: ", dst)
@@ -731,5 +744,5 @@ def generate_traffic_sequence_service_provider(network=None):
 
     #print("\n comunications: ", communications)
     #print("\n bws: ", bws)
-    #json.dump(list_all_communications, open("tms_service_provider_35.json", "w"), indent=4)
+    #json.dump(list_all_communications, open("tms_service_provider_train.json", "w"), indent=4)
     return  communications
