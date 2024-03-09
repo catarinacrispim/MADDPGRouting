@@ -70,6 +70,7 @@ class NetworkComponent:
 
             bws.append(link.get_bw_available_percentage())
         #print("\n bws: ", bws)
+        #return sum(bws)/len(bws)
         return min(bws)
 
     def add_neighbor(self, host):

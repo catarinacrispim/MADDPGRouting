@@ -111,9 +111,7 @@ class MADDPG:
             agent.update_network_parameters()
 
 
-if __name__ == '__main__':
-    #UPDATE_STEPS = 16
-    
+if __name__ == '__main__':    
     eng = NetworkEngine()
     env = NetworkEnv(eng)
 
@@ -131,9 +129,9 @@ if __name__ == '__main__':
     GAMMA = 0.99
     EXPLORE = 20000
     INITIAL_EPSILON = 0.5
-    FINAL_EPSILON = 0.0001
-    REPLAY_MEMORY = 50000
-    #BATCH = 256
+    #FINAL_EPSILON = 0.0001
+    REPLAY_MEMORY = 1000 #50000
+    MEMORY_BATCH = 100 #256
 
     if CRITIC_DOMAIN == "central_critic":
         critic_dim = len(eng.get_link_usage()) + NUMBER_OF_AGENTS
@@ -154,7 +152,7 @@ if __name__ == '__main__':
                            chkpt_dir='.\\tmp\\maddpg\\')
     #alfa 0.0001
 
-    memory = MultiAgentReplayBuffer(1000, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, batch_size=100)
+    memory = MultiAgentReplayBuffer(REPLAY_MEMORY, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, MEMORY_BATCH)
     
     if not EVALUATE:
         nr_epochs = NR_EPOCHS
@@ -166,12 +164,12 @@ if __name__ == '__main__':
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
-    path = f'/home/{PATH_SIMULATION}/agent_files{SIM_NR}'
+    path = f'{PATH_SIMULATION}/agent_files{SIM_NR}'
     if not os.path.exists(path):
         print(f"Creating 'agent_files{SIM_NR}' directory")
         os.mkdir(path)
     #create /home/student/results directory if not found
-    path = f'/home/{PATH_SIMULATION}/results'
+    path = f'{PATH_SIMULATION}/results'
     if not os.path.exists(path):
         print("Creating 'results' directory")
         os.mkdir(path)
@@ -185,10 +183,11 @@ if __name__ == '__main__':
     else:
         learning = "train"
     if GNN_MODULE:
-        path = f'/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
+        folder_path = f'{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
     else:
-        path = f'/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
-    os.mkdir(path)
+        folder_path = f'{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}'
+    sub_path = f'{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}'
+    os.mkdir(folder_path)
 
     if not EVALUATE:
         #graph_y_axis = np.zeros(NR_EPOCHS)
@@ -430,13 +429,9 @@ if __name__ == '__main__':
                 print("SAVING")
 
         #saving data while training in data file, so data can be accessed while training
-        if not EVALUATE and (epoch+1)%50 == 0:
-            #data_file_path = "/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_while_training.csv"            
+        if not EVALUATE and (epoch+1)%20 == 0:
             x = np.arange(0, NR_EPOCHS)
-            #np.savetxt(data_file_path, (x, y_axis_training), delimiter=',')
-            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_while_training.csv", (x, y_axis_training), delimiter=',')
-
-
+            np.savetxt(f"{folder_path}/data_while_training.csv", (x, y_axis_training), delimiter=',')
 
         #print(total_epoch_pck_loss)
 
@@ -450,10 +445,7 @@ if __name__ == '__main__':
         ### epoch ends
 
     ##Data text file
-    if GNN_MODULE:
-        data_file = open(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
-    else:
-        data_file = open(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.txt", "w")
+    data_file = open(f"{folder_path}/{sub_path}.txt", "w")
     if EVALUATE:
         if UPDATE_WEIGHTS:
             data_file.write(f"Update Weights\n")
@@ -495,13 +487,9 @@ if __name__ == '__main__':
         plt.legend()
         plt.plot(graph_x_axis, graph_y_axis, label = {NEURAL_NETWORK})
         #plt.plot(graph_x_axis, interval_data, label = {NEURAL_NETWORK})
-        if GNN_MODULE:
-            plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_GNN_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
-        else:
-            plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
-            np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data_total.csv", (x, y_axis_training), delimiter=',')
+        plt.savefig(f"{folder_path}/{sub_path}.png")
+        np.savetxt(f"{folder_path}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        np.savetxt(f"{folder_path}/data_total.csv", (x, y_axis_training), delimiter=',')
 
         plt.show()
     elif EVALUATE: # and UPDATE_WEIGHTS:
@@ -516,7 +504,7 @@ if __name__ == '__main__':
         plt.ylabel("Reward")
         plt.title(f"Rewards - Evaluate")
         
-        plt.savefig(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{learning}.png")
-        #np.savetxt(f"/home/{PATH_SIMULATION}/results/{NR_EPOCHS}epochs_{EPOCH_SIZE}episodes_{CRITIC_DOMAIN}_{NEURAL_NETWORK}_{TOPOLOGY_TYPE}_{learning}_{day}-{month}_{hh}:{mm}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
+        plt.savefig(f"{folder_path}/{sub_path}.png")
+        #np.savetxt(f"{folder_path}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.show()
     
