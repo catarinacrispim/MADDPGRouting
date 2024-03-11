@@ -34,15 +34,15 @@ data3 =  np.loadtxt(file3, delimiter=',', dtype=float)
 
 
 if not BATCH_DATA:
-    plt.plot(data1[1,:], label = "Local critic, Dueling Q Network")
-    plt.plot(data2[1,:], label = "Central critic, Simple Q Network")
-    plt.plot(data3[1,:], label = "Central critic, Dueling Q Network")
+    plt.plot(data1[1,:epochs], label = "Local critic, Dueling Q Network")
+    plt.plot(data2[1,:epochs], label = "Central critic, Simple Q Network")
+    plt.plot(data3[1,:epochs], label = "Central critic, Dueling Q Network")
 else:
-    aux1 = data1[1,:]
+    aux1 = data1[1,:epochs]
     batch_data1 = [sum(aux1[i:i+batch_size]) for i in range(0, len(aux1), batch_size)]
-    aux2 = data2[1,:]
+    aux2 = data2[1,:epochs]
     batch_data2 = [sum(aux2[i:i+batch_size]) for i in range(0, len(aux2), batch_size)]
-    aux3 = data3[1,:]
+    aux3 = data3[1,:epochs]
     batch_data3 = [sum(aux3[i:i+batch_size]) for i in range(0, len(aux3), batch_size)]
     plt.plot(batch_data1, label = "Local critic, Dueling Q Network")
     plt.plot(batch_data2, label = "Central critic, Simple Q Network")
@@ -53,6 +53,9 @@ plt.xlabel("Epochs")
 plt.ylabel("Reward")
 plt.title(f"Rewards per epoch in training")
 
-plt.savefig(f"{PATH_SIMULATION}/results/results_{topology}_{epochs}epochs_{batch_size}batch_{day}-{month}_{hh}:{mm}.png")
+if BATCH_DATA == True:
+    plt.savefig(f"{PATH_SIMULATION}/results/results_{topology}_{epochs}epochs_{batch_size}batch_{day}-{month}_{hh}:{mm}.png")
+else:
+    plt.savefig(f"{PATH_SIMULATION}/results/results_{topology}_{epochs}epochs_{day}-{month}_{hh}:{mm}.png")
 
 plt.show()
