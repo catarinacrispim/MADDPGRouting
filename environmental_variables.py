@@ -5,15 +5,15 @@ NR_ACTIVE_CONNECTIONS = 10
 NUMBER_OF_PATHS = 3
 #NUMBER_OF_AGENTS = 25
 
-NR_EPOCHS = 2     #epoch
-EPOCH_SIZE = 2    #episode
+NR_EPOCHS = 2000     #epoch
+EPOCH_SIZE = 200    #episode
 
 NOTES = " "
 
 GNN_MODULE = False
 
-PATH_SIMULATION = "/home/student"
-#PATH_SIMULATION = "/home/server2/Thesis"
+#PATH_SIMULATION = "/home/student"
+PATH_SIMULATION = "/home/server2/Thesis"
 SIM_NR = 0
 
 ### NETWORK TOPOLOGY TYPE ###
