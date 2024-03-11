@@ -252,9 +252,9 @@ if __name__ == '__main__':
                 total_package_loss_nr = 0
                 total_packets_sent_nr = 0
                 total_packets_tried_nr = 0
-            available_bw_time_steps = np.zeros(100)
+            available_bw_time_steps = np.zeros(MEMORY_BATCH)
             
-            for time_steps in range(100):
+            for time_steps in range(MEMORY_BATCH):
                 actions = {}
                 prev_states = {}
                 next_dsts = eng.get_nexts_dsts()

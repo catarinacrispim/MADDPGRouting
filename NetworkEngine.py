@@ -538,7 +538,7 @@ class NetworkEngine:
         #self.communication_sequences = generate_traffic_sequence_arpanet(self)
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
-            self.bws[host] = random.randint(10, 30)
+            self.bws[host] = random.randint(20, 50) #10-30
         self.calculate_paths()
 
         #print("\n hosts: ", self.hosts)
