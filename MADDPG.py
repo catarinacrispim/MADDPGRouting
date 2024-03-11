@@ -335,7 +335,7 @@ if __name__ == '__main__':
                     all_critic_new_states = [np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0) for i in
                                          range(NUMBER_OF_AGENTS)]
                 elif CRITIC_DOMAIN == "local_critic":
-                    #all_critic_new_states = next_states
+                #    all_critic_new_states = next_states
                     all_critic_new_states = list(next_states.values())
                 
                 new_next_states = []
@@ -346,7 +346,7 @@ if __name__ == '__main__':
                         new_next_states.append(bw_state)
                     else:
                         new_next_states.append(np.zeros((1, agent_dims[index]), dtype=np.double))
-
+                
                 actions = []
 
                 for host in all_hosts:

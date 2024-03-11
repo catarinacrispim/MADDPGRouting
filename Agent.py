@@ -171,7 +171,7 @@ class CriticNetwork(nn.Module):
 
             q = value + advantage_function         #q = value + (q_value - average q values)
 
-            q = self.output(q)  ##verificar
+            #q = self.output(q)  ##verificar
 
             q , _= T.max(q, dim=1, keepdim=True)
 
