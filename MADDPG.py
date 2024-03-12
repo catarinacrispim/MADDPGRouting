@@ -9,6 +9,7 @@ import networkx as nx
 import os
 import datetime
 import matplotlib.pyplot as plt
+from torch_geometric.data import Data
 
 from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
@@ -41,10 +42,10 @@ class MADDPG:
         for agent in self.agents:
             agent.load_models()
 
-    def choose_action(self, raw_obs, topology):
+    def choose_action(self, raw_obs):#, topology):
         actions = []
         for agent_idx, agent in enumerate(self.agents):
-            action = agent.choose_action(raw_obs[agent_idx], topology)
+            action = agent.choose_action(raw_obs[agent_idx]) #, topology)
             actions.append(np.argmax(action))
         return actions
 
@@ -149,7 +150,7 @@ if __name__ == '__main__':
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
                            fa1=10, fa2=80, fc1=15, fc2=80,
-                           alpha=0.0001, beta=0.0001, tau=0.0001,
+                           alpha=0.001, beta=0.0001, tau=0.0001,
                            chkpt_dir='.\\tmp\\maddpg\\')
     #alfa 0.0001
 
@@ -280,8 +281,10 @@ if __name__ == '__main__':
                         state = np.zeros((1, agent_dims[index]), dtype=np.double)
                         dismiss_indexes.append(index)
                     else:
-                        state = all_dst_states
-
+                        if GNN_MODULE == False:
+                            state = all_dst_states
+                        else:
+                            state = eng.get_gnn_state(host)
                     states.append(state)
 
                     if CRITIC_DOMAIN == "central_critic":
@@ -297,9 +300,22 @@ if __name__ == '__main__':
                 #edge_index = T.stack([int_hosts, int_array], dim=0)
                 #print("\n", T.stack([int_hosts, int_array], dim=0))
 
-                ##tensor of edges in network     
-                edge_index = []   
-                #edge_index = T.tensor(list(eng.get_nx_topology().edges), dtype=T.long).t().contiguous()      
+                ##tensor of edges in network  
+                # node_index = []
+                # node_index = T.tensor(all_hosts)  
+                # print("node index", node_index) 
+                # edge_index = []   
+                # edge_index = T.tensor(list(eng.get_nx_topology().edges), dtype=T.long).t().contiguous()
+                # print("\n\n edge index:", edge_index) 
+                # edge_bandwidths = T.tensor(eng.get_link_usage(), dtype=T.float)
+                # print("\nedge bandwidths torch", edge_bandwidths)
+
+                #data = Data(edge_index = edge_index, edge_attr= edge_bandwidths) 
+                #print(data)
+                #print("\ndata edgeindex: ", data.edge_index)
+                #print("\ndata edge attirbutes: ", data.edge_attr)
+                #eng.get_links()
+
                 #edge_index = T.tensor(list(eng.get_nx_topology().edges))
                 #edge_index = list(eng.get_nx_topology().edges)
                 #edge_index = eng.get_nx_topology().edges
@@ -309,7 +325,7 @@ if __name__ == '__main__':
                 
                 #edge_index = eng.get_nx_topology()
 
-                actions = maddpg_agents.choose_action(states, edge_index) 
+                actions = maddpg_agents.choose_action(states) #, data) 
 
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):

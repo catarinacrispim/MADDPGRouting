@@ -7,6 +7,8 @@ import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from torch_geometric.data import Data
+import torch as T
 
 from Link import Link
 from NetworkComponent import NetworkComponent
@@ -128,6 +130,13 @@ class NetworkEngine:
         #print("")
         #for key, values in self.links.items():
         #    print(f"{key}, {values.bw_total}")
+
+    # def get_links(self):
+    #     for key, values in self.links.items():
+    #         print(f"{key}")
+    #     key_array = np.array([list(key) for key in self.links.keys()], dtype=np.object)
+    #     print("key array: ", key_array)
+    #     return key_array
 
     def build_graph(self):
         for component in self.components.values():
@@ -447,6 +456,52 @@ class NetworkEngine:
         #print(f"\n state({host}) : ", state)
         return state
 
+    def get_gnn_state(self, host):
+        hostC = self.components.get(host)
+        hostC: NetworkComponent
+        links = []
+        known_bandwidths = {}
+        n_neighbors = 0
+        for neighbor in hostC.neighbors:
+            #links.append(self.get_link(host, neighbor))
+            known_bandwidths[(int(host[1:]), int(neighbor[1:]))] = self.get_link(host, neighbor).get_bw_available_percentage()
+            n_neighbors=n_neighbors+1
+        # link: Link
+        # edge_links_bw =[]
+        # #get available bw for the neighbours
+        # for index, link in enumerate(links):
+        #     print("index ", index)
+        #     edge_links_bw.append(link.get_bw_available_percentage())
+        #print("self links items ", self.links.keys())
+        #edge_mask = [edge in known_bandwidths for edge in self.links.keys()]
+        #print("keys ", list(known_bandwidths.keys()))
+        edge_indices = T.tensor(list(known_bandwidths.keys()), dtype=T.long).t()
+
+        next_dest = hostC.get_next_dst()
+
+        active_communication = np.array(hostC.get_active_communications())
+        #for index, active in enumerate(active_communication):
+        #    print("index ", index)
+        #    print("active ", active)
+            #state[index + NR_MAX_LINKS + 1] = active / 10
+            #communications.append(active)
+
+        edge_attr = T.tensor(list(known_bandwidths.values()), dtype=T.float32).view(-1,1)
+        
+        data = Data(
+            x = T.tensor([self.bws.get(host, 0),int(next_dest[1:])], dtype=T.float32),
+            #x = None,
+            edge_index = edge_indices,
+            edge_attr = edge_attr,
+            #x = edge_attr,
+            target_node = int(next_dest[1:]),
+            target_bandwidth = self.bws.get(host, 0),
+            #edges_communications = 
+            num_nodes = n_neighbors
+        )
+
+        return data
+    
     def set_active_path(self, host, dsts):
         h = self.components.get(host, None)
 
@@ -458,8 +513,10 @@ class NetworkEngine:
 
     def get_link_usage(self):
         bws = [link.get_bw_available_percentage() for link in self.links.values()]
+        #for key, values in self.links.items():
+        #   print(f"{key}, {values.bw_total}, {values.get_bw_available_percentage()}")
+
         # return numpry array
-        #print("\n", bws)
         #print("\n average: ", np.average(bws))
         return np.asarray(bws)
 

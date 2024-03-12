@@ -12,9 +12,9 @@ NOTES = " "
 
 GNN_MODULE = False
 
-PATH_SIMULATION = "/home/student"
-#PATH_SIMULATION = "/home/server2/Thesis"
-SIM_NR = "_test_11-03"
+#PATH_SIMULATION = "/home/student"
+PATH_SIMULATION = "/home/server2/Thesis"
+SIM_NR = "_"
 
 ### NETWORK TOPOLOGY TYPE ###
 TOPOLOGY_TYPE = "internet"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25; NR_MAX_LINKS = 11
