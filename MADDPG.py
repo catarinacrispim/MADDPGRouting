@@ -228,7 +228,9 @@ if __name__ == '__main__':
 
         if EVALUATE and epoch != 0:
             if MODIFIED_NETWORK == "remove_edges": 
-                eng.set_different_topology_edges(epoch)
+                eng.remove_topology_edges(epoch)
+            # if MODIFIED_NETWORK == "add_edges":
+            #     eng.add_topology_edges(epoch)
 
         if not EVALUATE:
             episode_size = EPOCH_SIZE

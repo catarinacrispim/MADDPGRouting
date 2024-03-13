@@ -43,3 +43,4 @@ EVALUATE = False; UPDATE_WEIGHTS = False
 
 ### Modified Network In Evaluate  ###
 MODIFIED_NETWORK = "remove_edges"
+#MODIFIED_NETWORK = "add_edges"

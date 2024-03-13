@@ -536,11 +536,10 @@ class NetworkEngine:
         self.statistics = {'package_loss': 0, 'package_sent': 0, 'nr_package_loss': 0, 'nr_package_sent': 0, 'nr_transmitted_packets' : 0}
         self.single_con_hosts = [f"H{int(host) + 1}" for host in self.graph_topology if 
                                  len(self.graph_topology.edges(host)) == 1]   
-        self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
-        
+        #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
+
     
-    
-    def set_different_topology_edges(self, mod):    
+    def remove_topology_edges(self, mod):    
         if mod == 1:
             nr_links_changed = 1
         elif mod == 2:
@@ -575,6 +574,40 @@ class NetworkEngine:
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
+
+    # def add_topology_edges(self, mod):    #sort out state space edge bandwidth issue
+    #     if mod == 1:
+    #         nr_links_changed = 1
+    #     elif mod == 2:
+    #         nr_links_changed = 2
+    #     elif mod == 3:
+    #         nr_links_changed = 3
+
+    #     edges = []
+    #     change = []
+    #     for edge in self.graph_topology.edges():
+    #         n1, n2 = edge
+    #         if self.graph_topology.degree(n1) < 4 and self.graph_topology.degree(n2) < 4:
+    #             edges.append(edge)
+    #     change = random.sample(edges, min(nr_links_changed, len(edges)))
+    #     for edge in change:
+    #         print("changing edge: ", edge)
+    #         self.graph_topology.remove_edge(*edge)
+    #         u, v = edge
+    #         self.graph_topology.add_edge(u, v, bw = 0)
+        
+    #     #print("\n Modified", self.graph_topology)
+    #     #print("\n edges: ", self.graph_topology.edges(data=True))
+    #     self.setup()
+    #     if TOPOLOGY_TYPE == "internet":
+    #         self.all_tms = json.load(open("tms_internet_test.json", mode="r"))
+    #     if TOPOLOGY_TYPE == "arpanet":
+    #         self.all_tms = json.load(open("tms_arpanet_test.json", mode="r"))
+    #     if TOPOLOGY_TYPE == "service_provider":
+    #         self.all_tms = json.load(open("tms_service_provider_test.json", mode="r"))
+    #     self.current_index = 0
+    #     self.current_tm_index = self.current_index % len(self.all_tms)       
+    #     self.communication_sequences = self.all_tms[self.current_tm_index]
         
 
     def set_arpanet_topology(self):
