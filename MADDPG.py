@@ -217,13 +217,11 @@ if __name__ == '__main__':
 
     total_package_loss_nr = 0
     total_packets_sent_nr = 0
-    total_packets_tried_nr = 0
 
     for epoch in range(0, nr_epochs):
         total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0
-
         #print("Epoch: ", epoch)
 
         if EVALUATE and epoch != 0:
@@ -247,14 +245,12 @@ if __name__ == '__main__':
             new_tm = e % 2 == 0
             env.reset(new_tm)
 
-            episode_reward = 0
             total_reward = 0
             total_package_loss = 0
             total_packets_sent = 0
             if EVALUATE:
                 total_package_loss_nr = 0
                 total_packets_sent_nr = 0
-                total_packets_tried_nr = 0
             available_bw_time_steps = np.zeros(MEMORY_BATCH)
             
             for time_steps in range(MEMORY_BATCH):
@@ -408,7 +404,6 @@ if __name__ == '__main__':
 
             total_package_loss_nr = eng.statistics['nr_package_loss']
             total_packets_sent_nr =  eng.statistics['nr_package_sent']
-            total_packets_tried_nr = eng.statistics['nr_transmitted_packets']
 
             experience_pck_lost += total_epoch_pck_loss
             experience_pck_sent += total_epoch_pck_sent
@@ -453,8 +448,8 @@ if __name__ == '__main__':
         if EVALUATE:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
-            percentage[epoch] = round(((total_epoch_pck_loss/total_epoch_pck_sent)*100), 2)
-            percentage_2[epoch] = round(((total_package_loss_nr/total_packets_sent_nr)*100),2)
+            percentage[epoch] = round(((total_epoch_pck_loss/(total_epoch_pck_loss+total_epoch_pck_sent))*100), 2)
+            percentage_2[epoch] = round(((total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr))*100),2)
             available_bw_epoch[epoch] = round(np.average(available_bw_episode),2)
             available_bw_epoch_2[epoch] = round(np.average(available_bw_episode_2), 2)
         ### epoch ends
@@ -465,21 +460,19 @@ if __name__ == '__main__':
         if UPDATE_WEIGHTS:
             data_file.write(f"Update Weights\n")
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
-        data_file.write(f"Packets lost Original network: {percentage[0]}% \n")
+        data_file.write(f"Packets lost Original network (bw): {percentage[0]}% \n")
         data_file.write(f"Packets lost Original network (number): {percentage_2[0]}% \n")
         data_file.write(f"Available bandwidth: {available_bw_epoch[0]}% \n")
         data_file.write(f"Available bandwidth 2: {available_bw_epoch_2[0]}% \n\n")
         for index in range(1, nr_epochs):
-            data_file.write(f"Packets lost Modified network ({index}): {percentage[index]}% \n")
+            data_file.write(f"Packets lost Modified network (bw) ({index}): {percentage[index]}% \n")
             data_file.write(f"Packets lost Modified network (number) ({index}): {percentage_2[index]}% \n")
             data_file.write(f"Available bandwidth ({index}): {available_bw_epoch[index]}% \n")
             data_file.write(f"Available bandwidth 2 ({index}): {available_bw_epoch_2[index]}% \n\n")
         data_file.write(f"{NOTES}\n")
     else:
         #data_file.write(f"Packets lost when training {round(experience_pck_lost/experience_pck_sent * 100, 2)}% \n")
-        #data_file.write(f"Packets lost training \"lost_nr/(lost_nr+sent_nr)\" : {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
-        data_file.write(f"Packets lost training \"lost_nr/(tried_ nr)\" : {round(total_package_loss_nr/(total_packets_tried_nr) * 100, 2)}% \n")
-        #data_file.write(f"Packets sent training \"sent_nr/(tried_ nr)\" : {round(total_packets_sent_nr/(total_packets_tried_nr) * 100, 2)}% \n")
+        data_file.write(f"Packets lost training \"lost_nr/(lost_nr+sent_nr)\" : {round(total_package_loss_nr/(total_package_loss_nr+total_packets_sent_nr) * 100, 2)}% \n")
         data_file.write(f"\n{NOTES}\n")
     data_file.close    
 
