@@ -698,7 +698,7 @@ class NetworkEngine:
         self.create_components(self.graph_topology) #creates nodes and edges
         self.hosts = self.get_all_hosts()
         for host in self.hosts:
-            self.bws[host] = random.randint(50, 150)
+            self.bws[host] = random.randint(20, 80)
         self.calculate_paths()
 
         #print("\n hosts: ", self.hosts)
