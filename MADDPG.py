@@ -159,8 +159,7 @@ if __name__ == '__main__':
     if not EVALUATE:
         nr_epochs = NR_EPOCHS
     else:
-        if MODIFIED_NETWORK == "remove_edges":
-            nr_epochs = 4
+        nr_epochs = 4
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
@@ -227,8 +226,8 @@ if __name__ == '__main__':
         if EVALUATE and epoch != 0:
             if MODIFIED_NETWORK == "remove_edges": 
                 eng.remove_topology_edges(epoch)
-            # if MODIFIED_NETWORK == "add_edges":
-            #     eng.add_topology_edges(epoch)
+            if MODIFIED_NETWORK == "add_edges":
+                eng.add_topology_edges(epoch)
 
         if not EVALUATE:
             episode_size = EPOCH_SIZE
