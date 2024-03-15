@@ -201,7 +201,7 @@ if __name__ == '__main__':
         graph_y_axis = [[0 for _ in range(EPOCH_SIZE*4)] for _ in range(nr_epochs)]
         
 
-    if EVALUATE:
+    if EVALUATE and NEURAL_NETWORK != "shortest":
         maddpg_agents.load_checkpoint()
 
     packet_loss_evaluate = []
