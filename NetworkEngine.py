@@ -127,8 +127,8 @@ class NetworkEngine:
             self.links[link.get_id()] = link
         #print("\n edges: ")
         #print("")
-        #for key, values in self.links.items():
-        #    print(f"{key}, {values.bw_total}")
+        for key, values in self.links.items():
+            print(f"{key}, {values.bw_total}")
 
     # def get_links(self):
     #     for key, values in self.links.items():
@@ -572,6 +572,8 @@ class NetworkEngine:
         self.current_index = 0
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
+
+    
 
     def add_topology_edges(self, mod):    #sort out state space edge bandwidth issue
         if mod == 1:
