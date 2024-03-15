@@ -594,8 +594,6 @@ class NetworkEngine:
             if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
                 edges.append(edge)
 
-        n2, n2 = 0
-
         for n1 in self.graph_topology.nodes():
             for n2 in self.graph_topology.nodes():
                 if n1 != n2 and not self.graph_topology.has_edge(n1,n2):
