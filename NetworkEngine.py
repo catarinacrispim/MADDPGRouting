@@ -585,20 +585,28 @@ class NetworkEngine:
         change = []
         edges_add = []
 
+        max_connections = NR_MAX_LINKS - nr_links_changed
+
         for edge in self.graph_topology.edges():
             n1, n2 = edge
             if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
                 edges.append(edge)
-            if self.graph_topology.degree(n1) < NR_MAX_LINKS and self.graph_topology.degree(n2) < NR_MAX_LINKS:
-                edges_add.append(edge)
+
+        n2, n2 = 0
+
+        for n1 in self.graph_topology.nodes():
+            for n2 in self.graph_topology.nodes():
+                if n1 != n2 and not self.graph_topology.has_edge(n1,n2):
+                    if self.graph_topology.degree(n1) < max_connections and self.graph_topology.degree(n2) < max_connections:
+                        edges_add.append((n1,n2))
         
         change = random.sample(edges, min(nr_links_changed, len(edges)))
         add = random.sample(edges_add, min(nr_links_changed, len(edges_add)))
 
         for edge1, edge2 in zip(change, add):
-            print("changing edge: ", edge1)
             self.graph_topology.remove_edge(*edge1)
             u, v = edge2
+            print("removing edge: ", edge1, "adding edge: ", edge2, "with node's degree: ", self.graph_topology.degree(u), ", ", self.graph_topology.degree(v))
             self.graph_topology.add_edge(u, v, bw = 100)
         
         #print("\n Modified", self.graph_topology)
