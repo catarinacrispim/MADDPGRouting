@@ -1,14 +1,10 @@
 NR_ACTIVE_CONNECTIONS = 10
-#NR_MAX_LINKS = 11
-#STATE_SIZE = NR_ACTIVE_CONNECTIONS * 2 + NR_MAX_LINKS + 2
-#NUMBER_OF_HOSTS = 13
 NUMBER_OF_PATHS = 3
-#NUMBER_OF_AGENTS = 25
 
 NR_EPOCHS = 2000     #epoch
 EPOCH_SIZE = 200    #episode
 
-NOTES = " "
+NOTES = " only 3 edges removed in total"
 
 GNN_MODULE = False
 
@@ -35,12 +31,16 @@ CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #4
 #CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
 
-#GRAPH_BATCH_SIZE = 5 #batch size for graph
-
 #EVALUATE = False; UPDATE_WEIGHTS = False
 EVALUATE = True; UPDATE_WEIGHTS = False
 #EVALUATE = True; UPDATE_WEIGHTS = True
 
 ### Modified Network In Evaluate  ###
-#MODIFIED_NETWORK = "remove_edges"
-MODIFIED_NETWORK = "add_edges"
+MODIFIED_NETWORK = "remove_edges"
+#MODIFIED_NETWORK = "add_edges"
+
+#GRAPH_BATCH_SIZE = 5 #batch size for graph
+#NR_MAX_LINKS = 11
+#STATE_SIZE = NR_ACTIVE_CONNECTIONS * 2 + NR_MAX_LINKS + 2
+#NUMBER_OF_HOSTS = 13
+#NUMBER_OF_AGENTS = 25

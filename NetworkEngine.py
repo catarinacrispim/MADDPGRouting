@@ -127,8 +127,8 @@ class NetworkEngine:
             self.links[link.get_id()] = link
         #print("\n edges: ")
         #print("")
-        for key, values in self.links.items():
-            print(f"{key}, {values.bw_total}")
+        #for key, values in self.links.items():
+        #    print(f"{key}, {values.bw_total}")
 
     # def get_links(self):
     #     for key, values in self.links.items():
@@ -541,9 +541,9 @@ class NetworkEngine:
         if mod == 1:
             nr_links_changed = 1
         elif mod == 2:
-            nr_links_changed = 2
+            nr_links_changed = 1 #2
         elif mod == 3:
-            nr_links_changed = 3
+            nr_links_changed = 1 #3
 
         #self.graph_topology = nx.Graph(pickle.load(open('small_network.pickle', 'rb')))
         edges = []
@@ -579,9 +579,9 @@ class NetworkEngine:
         if mod == 1:
             nr_links_changed = 1
         elif mod == 2:
-            nr_links_changed = 2
+            nr_links_changed = 1#2
         elif mod == 3:
-            nr_links_changed = 3
+            nr_links_changed = 1#3
 
         edges = []
         change = []
