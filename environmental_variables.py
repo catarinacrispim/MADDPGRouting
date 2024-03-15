@@ -37,10 +37,10 @@ CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 
 #GRAPH_BATCH_SIZE = 5 #batch size for graph
 
-EVALUATE = False; UPDATE_WEIGHTS = False
-#EVALUATE = True; UPDATE_WEIGHTS = False
+#EVALUATE = False; UPDATE_WEIGHTS = False
+EVALUATE = True; UPDATE_WEIGHTS = False
 #EVALUATE = True; UPDATE_WEIGHTS = True
 
 ### Modified Network In Evaluate  ###
-MODIFIED_NETWORK = "remove_edges"
-#MODIFIED_NETWORK = "add_edges"
+#MODIFIED_NETWORK = "remove_edges"
+MODIFIED_NETWORK = "add_edges"
