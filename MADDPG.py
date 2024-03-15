@@ -178,7 +178,7 @@ if __name__ == '__main__':
     hh = datetime.datetime.now().hour
     mm = datetime.datetime.now().minute
     if EVALUATE:
-        learning = "test"
+        learning = f'test_{MODIFIED_NETWORK}'
     else:
         learning = "train"
     if GNN_MODULE:
@@ -456,6 +456,7 @@ if __name__ == '__main__':
     ##Data text file
     data_file = open(f"{folder_path}/{sub_path}.txt", "w")
     if EVALUATE:
+        data_file.write(f'Testing - {CRITIC_DOMAIN} {NEURAL_NETWORK} - {MODIFIED_NETWORK}')
         if UPDATE_WEIGHTS:
             data_file.write(f"Update Weights\n")
         data_file.write(f"Modified Network: {MODIFIED_NETWORK}\n\n")
