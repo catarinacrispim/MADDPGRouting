@@ -573,39 +573,46 @@ class NetworkEngine:
         self.current_tm_index = self.current_index % len(self.all_tms)       
         self.communication_sequences = self.all_tms[self.current_tm_index]
 
-    # def add_topology_edges(self, mod):    #sort out state space edge bandwidth issue
-    #     if mod == 1:
-    #         nr_links_changed = 1
-    #     elif mod == 2:
-    #         nr_links_changed = 2
-    #     elif mod == 3:
-    #         nr_links_changed = 3
+    def add_topology_edges(self, mod):    #sort out state space edge bandwidth issue
+        if mod == 1:
+            nr_links_changed = 1
+        elif mod == 2:
+            nr_links_changed = 2
+        elif mod == 3:
+            nr_links_changed = 3
 
-    #     edges = []
-    #     change = []
-    #     for edge in self.graph_topology.edges():
-    #         n1, n2 = edge
-    #         if self.graph_topology.degree(n1) < 4 and self.graph_topology.degree(n2) < 4:
-    #             edges.append(edge)
-    #     change = random.sample(edges, min(nr_links_changed, len(edges)))
-    #     for edge in change:
-    #         print("changing edge: ", edge)
-    #         self.graph_topology.remove_edge(*edge)
-    #         u, v = edge
-    #         self.graph_topology.add_edge(u, v, bw = 0)
+        edges = []
+        change = []
+        edges_add = []
+
+        for edge in self.graph_topology.edges():
+            n1, n2 = edge
+            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
+                edges.append(edge)
+            if self.graph_topology.degree(n1) < NR_MAX_LINKS and self.graph_topology.degree(n2) < NR_MAX_LINKS:
+                edges_add.append(edge)
         
-    #     #print("\n Modified", self.graph_topology)
-    #     #print("\n edges: ", self.graph_topology.edges(data=True))
-    #     self.setup()
-    #     if TOPOLOGY_TYPE == "internet":
-    #         self.all_tms = json.load(open("tms_internet_test.json", mode="r"))
-    #     if TOPOLOGY_TYPE == "arpanet":
-    #         self.all_tms = json.load(open("tms_arpanet_test.json", mode="r"))
-    #     if TOPOLOGY_TYPE == "service_provider":
-    #         self.all_tms = json.load(open("tms_service_provider_test.json", mode="r"))
-    #     self.current_index = 0
-    #     self.current_tm_index = self.current_index % len(self.all_tms)       
-    #     self.communication_sequences = self.all_tms[self.current_tm_index]
+        change = random.sample(edges, min(nr_links_changed, len(edges)))
+        add = random.sample(edges_add, min(nr_links_changed, len(edges_add)))
+
+        for edge1, edge2 in zip(change, add):
+            print("changing edge: ", edge1)
+            self.graph_topology.remove_edge(*edge1)
+            u, v = edge2
+            self.graph_topology.add_edge(u, v, bw = 100)
+        
+        #print("\n Modified", self.graph_topology)
+        #print("\n edges: ", self.graph_topology.edges(data=True))
+        self.setup()
+        if TOPOLOGY_TYPE == "internet":
+            self.all_tms = json.load(open("tms_internet_test.json", mode="r"))
+        if TOPOLOGY_TYPE == "arpanet":
+            self.all_tms = json.load(open("tms_arpanet_test.json", mode="r"))
+        if TOPOLOGY_TYPE == "service_provider":
+            self.all_tms = json.load(open("tms_service_provider_test.json", mode="r"))
+        self.current_index = 0
+        self.current_tm_index = self.current_index % len(self.all_tms)       
+        self.communication_sequences = self.all_tms[self.current_tm_index]
         
 
     def set_arpanet_topology(self):
