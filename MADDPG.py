@@ -15,7 +15,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, NUMBER_OF_PATHS
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, TRAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, NUMBER_OF_PATHS
 #, GRAPH_BATCH_SIZE
 
 
@@ -158,8 +158,10 @@ if __name__ == '__main__':
     
     if not EVALUATE:
         nr_epochs = NR_EPOCHS
-    else:
+    elif EVALUATE and not TRAIN:
         nr_epochs = 4
+    elif EVALUATE and TRAIN:
+        nr_epochs = NR_EPOCHS
 
     ## SETUP ##
     #create /home/student/agent_files directory if not found
@@ -178,7 +180,10 @@ if __name__ == '__main__':
     hh = datetime.datetime.now().hour
     mm = datetime.datetime.now().minute
     if EVALUATE:
-        learning = f'test_{MODIFIED_NETWORK}'
+        if TRAIN:
+            learning = f'test_and_train_{MODIFIED_NETWORK}'
+        else:
+            learning = f'test_{MODIFIED_NETWORK}'
     else:
         learning = "train"
     if GNN_MODULE:
@@ -195,13 +200,17 @@ if __name__ == '__main__':
         #batch_aux = int(NR_EPOCHS/GRAPH_BATCH_SIZE)
         #graph_y_axis = np.zeros(batch_aux)
         #graph_x_axis = np.arange(0, batch_aux)
-    elif EVALUATE: # and UPDATE_WEIGHTS:
+    elif EVALUATE and not TRAIN: # and UPDATE_WEIGHTS:
         graph_x_axis = np.zeros(EPOCH_SIZE*4)
         aux = np.zeros(EPOCH_SIZE*4) 
         graph_y_axis = [[0 for _ in range(EPOCH_SIZE*4)] for _ in range(nr_epochs)]
+    if EVALUATE and TRAIN:
+        graph_y_axis = np.zeros(NR_EPOCHS)
+        y_axis_training = np.zeros(NR_EPOCHS)
+        graph_x_axis = np.zeros(NR_EPOCHS)
         
 
-    if EVALUATE and NEURAL_NETWORK != "shortest":
+    if (EVALUATE and NEURAL_NETWORK != "shortest") or (EVALUATE and TRAIN):
         maddpg_agents.load_checkpoint()
 
     packet_loss_evaluate = []
@@ -217,19 +226,26 @@ if __name__ == '__main__':
     total_package_loss_nr = 0
     total_packets_sent_nr = 0
 
+    if (EVALUATE and TRAIN):
+        if MODIFIED_NETWORK == "remove_edges":
+            eng.remove_edges(3)
+        if MODIFIED_NETWORK == "add_edges":
+            eng.add_edges(3)
+
+
     for epoch in range(0, nr_epochs):
         total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0
         #print("Epoch: ", epoch)
 
-        if EVALUATE and epoch != 0:
+        if EVALUATE and not TRAIN and epoch != 0:
             if MODIFIED_NETWORK == "remove_edges": 
                 eng.remove_topology_edges(epoch)
             if MODIFIED_NETWORK == "add_edges":
                 eng.add_topology_edges(epoch)
 
-        if not EVALUATE:
+        if not EVALUATE or (EVALUATE and TRAIN):
             episode_size = EPOCH_SIZE
         else:
             if not UPDATE_WEIGHTS:
@@ -284,6 +300,7 @@ if __name__ == '__main__':
                             state = eng.get_gnn_state(host)
                     states.append(state)
 
+                    #print("state: ", state)
                     if CRITIC_DOMAIN == "central_critic":
                         critic_states.append(np.concatenate((eng.get_link_usage(), np.array(all_dsts)), axis=0))
                     elif CRITIC_DOMAIN == "local_critic":
@@ -327,7 +344,7 @@ if __name__ == '__main__':
                 actions_dict = {}
                 for index, host in enumerate(all_hosts):
                     if next_dsts.get(host, ''):
-                        prob = -1 if EVALUATE else max(0.1, (0.3 - 0.0001 * epoch))
+                        prob = -1 if (EVALUATE and not TRAIN) else max(0.1, (0.3 - 0.0001 * epoch))
                         if random.random() < prob:
                             action = random.randint(0, 2)
                         else:
@@ -411,7 +428,7 @@ if __name__ == '__main__':
             total_rewards.append(total_reward)
             #batch_rewards.append(total_reward)
 
-            if EVALUATE: #and UPDATE_WEIGHTS:
+            if EVALUATE and not TRAIN: #and UPDATE_WEIGHTS:
                 graph_y_axis[epoch][e] = int(total_reward)
 
             # print(f"{'OG' if epoch % 2 == 0 else 'NEW'} REWARD {total_reward}")
@@ -420,7 +437,7 @@ if __name__ == '__main__':
         
         #print(f"total epoch reward {total_epoch_reward}")
         # f.write(f"{epoch} {total_epoch_reward}\n")
-        if not EVALUATE:
+        if not EVALUATE or (EVALUATE and TRAIN):
             #graph_y_axis[epoch] = sum(total_epoch_reward) / len(total_epoch_reward)  #average
             y_axis_training[epoch] = sum(total_epoch_reward) / len(total_epoch_reward) #for saving in the training file
             #batch_rewards.append(y_axis_training[epoch]) #save average of epoch
@@ -438,13 +455,13 @@ if __name__ == '__main__':
                 print("SAVING")
 
         #saving data while training in data file, so data can be accessed while training
-        if not EVALUATE and (epoch+1)%20 == 0:
+        if (not EVALUATE or (EVALUATE and TRAIN) )and (epoch+1)%20 == 0:
             x = np.arange(0, NR_EPOCHS)
             np.savetxt(f"{folder_path}/data_while_training.csv", (x, y_axis_training), delimiter=',')
 
         #print(total_epoch_pck_loss)
 
-        if EVALUATE:
+        if EVALUATE and not TRAIN:
             #packet_loss_evaluate[epoch] = total_epoch_pck_loss
             #packet_sent_evaluate[epoch] = total_epoch_pck_sent
             percentage[epoch] = round(((total_epoch_pck_loss/(total_epoch_pck_loss+total_epoch_pck_sent))*100), 2)
@@ -455,7 +472,7 @@ if __name__ == '__main__':
 
     ##Data text file
     data_file = open(f"{folder_path}/{sub_path}.txt", "w")
-    if EVALUATE:
+    if EVALUATE and not TRAIN:
         data_file.write(f'Testing - {CRITIC_DOMAIN} {NEURAL_NETWORK} - {MODIFIED_NETWORK}')
         if UPDATE_WEIGHTS:
             data_file.write(f"Update Weights\n")
@@ -495,7 +512,7 @@ if __name__ == '__main__':
         np.savetxt(f"{folder_path}/data_total.csv", (x, y_axis_training), delimiter=',')
 
         plt.show()
-    elif EVALUATE: # and UPDATE_WEIGHTS:
+    elif EVALUATE and not TRAIN: # and UPDATE_WEIGHTS:
         graph_x_axis = np.arange(0, episode_size)
  
         plt.plot(graph_y_axis[0], label = "Original network")
@@ -511,3 +528,8 @@ if __name__ == '__main__':
         #np.savetxt(f"{folder_path}/data.csv", (graph_x_axis, graph_y_axis), delimiter=',')
         plt.show()
     
+    elif EVALUATE and TRAIN:
+        x = np.arange(0, NR_EPOCHS)
+        np.savetxt(f"{folder_path}/data_total.csv", (x, y_axis_training), delimiter=',')
+
+

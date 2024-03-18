@@ -12,7 +12,7 @@ import torch as T
 
 from Link import Link
 from NetworkComponent import NetworkComponent
-from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE, MODIFIED_NETWORK, NUMBER_OF_PATHS, TOPOLOGY_TYPE
+from environmental_variables import EPOCH_SIZE, STATE_SIZE, NR_MAX_LINKS, EVALUATE, MODIFIED_NETWORK, NUMBER_OF_PATHS, TOPOLOGY_TYPE, TRAIN
 
 
 class NetworkEngine:
@@ -32,6 +32,7 @@ class NetworkEngine:
         self.hosts = {}
         self.switchs = {}
         self.components = {}
+
 
         # self.graph_topology = nx.random_internet_as_graph(50)
 
@@ -537,6 +538,52 @@ class NetworkEngine:
         #self.bws = {host: bw if host not in self.single_con_hosts else bw // 3 for host, bw in self.bws.items()}
 
     
+    def remove_edges(self, nr_edges):
+        edges = []
+        change = []
+        for edge in self.graph_topology.edges():
+            n1, n2 = edge
+            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
+                edges.append(edge)
+        change = random.sample(edges, min(nr_edges, len(edges)))
+        for edge in change:
+            print("changing edge: ", edge)
+            self.graph_topology.remove_edge(*edge)
+            u, v = edge
+            self.graph_topology.add_edge(u, v, bw = 0)
+
+        self.setup()
+    
+    def add_edges(self, nr_edges):
+        edges = []
+        change = []
+        edges_add = []
+        max_connections = NR_MAX_LINKS - nr_edges
+
+        for edge in self.graph_topology.edges():
+            n1, n2 = edge
+            if self.graph_topology.degree(n1) > 1 and self.graph_topology.degree(n2) > 1:
+                edges.append(edge)
+
+        for n1 in self.graph_topology.nodes():
+            for n2 in self.graph_topology.nodes():
+                if n1 != n2 and not self.graph_topology.has_edge(n1,n2):
+                    if self.graph_topology.degree(n1) < max_connections and self.graph_topology.degree(n2) < max_connections:
+                        edges_add.append((n1,n2))
+        
+        change = random.sample(edges, min(nr_edges, len(edges)))
+        add = random.sample(edges_add, min(nr_edges, len(edges_add)))
+
+        for edge1, edge2 in zip(change, add):
+            self.graph_topology.remove_edge(*edge1)
+            u, v = edge2
+            print("removing edge: ", edge1, "adding edge: ", edge2, "with node's degree: ", self.graph_topology.degree(u), ", ", self.graph_topology.degree(v))
+            self.graph_topology.add_edge(u, v, bw = 100)
+        
+        self.setup()
+
+
+    
     def remove_topology_edges(self, mod):    
         if mod == 1:
             nr_links_changed = 1
@@ -632,6 +679,7 @@ class NetworkEngine:
         self.bws = {}
 
         self.graph_topology = pickle.load(open("topology_arpanet.pickle", "rb"))
+
         self.communication_sequences = {"H21": [ "H5", "H5", "H33", "H25", "H27", "H27", "H3", "H24", "H11", "H16", "H2", "H10", "H15", "H29", "H3", "H33", "H19", "H14", "H25", "H32", "H11", "H2", "H33", "H24", "H13", "H31", "H3", "H25", "H6", "H14" ], "H1": [ "H15", "H29", "H32", "H5", "H8", "H29", "H32", "H2", "H18", "H20", "H4", "H33", "H18", "H29", "H8", "H15", "H14", "H16", "H31", "H28", "H9", "H22", "H11", "H27", "H32", "H9", "H25", "H24", "H18", "H4" ], "H22": [ "H13", "H32", "H12", "H25", "H12", "H7", "H3", "H25", "H24", "H7", "H19", "H28", "H2", "H8", "H5", "H25", "H10", "H27", "H3", "H32", "H8", "H21", "H25", "H28", "H20", "H17", "H12", "H27", "H4", "H32" ], "H2": [ "H30", "H20", "H14", "H14", "H14", "H5", "H17", "H23", "H21", "H20", "H3", "H22", "H18", "H23", "H28", "H28", "H4", "H26", "H19", "H9", "H27", "H11", "H4", "H28", "H15", "H30", "H14", "H26", "H16", "H7" ], "H23": [ "H12", "H11", "H14", "H26", "H32", "H6", "H27", "H1", "H13", "H16", "H17", "H17", "H30", "H26", "H7", "H9", "H22", "H15", "H28", "H24", "H21", "H29", "H33", "H16", "H19", "H33", "H1", "H8", "H5", "H9" ], "H3": [ "H20", "H19", "H20", "H30", "H22", "H13", "H18", "H24", "H22", "H14", "H23", "H31", "H25", "H27", "H27", "H9", "H12", "H16", "H24", "H11", "H20", "H12", "H31", "H32", "H14", "H18", "H27", "H24", "H21", "H32" ], "H24": [ "H17", "H2", "H18", "H19", "H20", "H13", "H4", "H12", "H33", "H19", "H29", "H21", "H7", "H9", "H29", "H33", "H14", "H32", "H12", "H22", "H20", "H8", "H30", "H29", "H14", "H17", "H17", "H27", "H19", "H19" ], "H4": [ "H16", "H5", "H13", "H9", "H26", "H3", "H32", "H29", "H8", "H18", "H6", "H9", "H30", "H24", "H9", "H7", "H13", "H7", "H29", "H11", "H29", "H8", "H18", "H29", "H1", "H18", "H17", "H19", "H3", "H18" ], "H25": [ "H18", "H15", "H26", "H30", "H18", "H10", "H29", "H1", "H30", "H8", "H15", "H20", "H14", "H5", "H17", "H27", "H14", "H11", "H27", "H26", "H15", "H31", "H3", "H21", "H33", "H22", "H29", "H2", "H22", "H3" ], "H8": [ "H18", "H2", "H13", "H21", "H15", "H14", "H23", "H15", "H5", "H29", "H24", "H5", "H4", "H1", "H25", "H4", "H4", "H9", "H10", "H1", "H4", "H4", "H29", "H23", "H1", "H32", "H4", "H25", "H30", "H14" ], "H26": [ "H14", "H20", "H7", "H33", "H27", "H10", "H32", "H17", "H21", "H6", "H18", "H22", "H13", "H6", "H20", "H20", "H23", "H18", "H33", "H9", "H4", "H14", "H13", "H2", "H29", "H10", "H29", "H30", "H19", "H25" ], "H11": [ "H32", "H2", "H3", "H7", "H25", "H25", "H21", "H32", "H26", "H21", "H3", "H10", "H17", "H29", "H19", "H33", "H30", "H27", "H31", "H26", "H14", "H7", "H9", "H10", "H7", "H17", "H9", "H32", "H16", "H23" ], "H27": [ "H5", "H19", "H5", "H4", "H28", "H26", "H16", "H10", "H5", "H26", "H24", "H7", "H24", "H20", "H13", "H33", "H18", "H23", "H20", "H14", "H19", "H9", "H15", "H3", "H32", "H24", "H31", "H30", "H3", "H1" ], "H12": [ "H22", "H7", "H10", "H27", "H17", "H29", "H14", "H17", "H11", "H6", "H19", "H14", "H23", "H31", "H27", "H1", "H3", "H23", "H3", "H5", "H1", "H30", "H7", "H9", "H28", "H21", "H23", "H2", "H9", "H19" ], "H28": [ "H1", "H2", "H27", "H15", "H16", "H22", "H6", "H3", "H19", "H32", "H2", "H29", "H29", "H16", "H23", "H23", "H5", "H20", "H24", "H20", "H26", "H2", "H5", "H25", "H12", "H8", "H5", "H5", "H33", "H22" ], "H13": [ "H3", "H30", "H31", "H8", "H25", "H20", "H9", "H3", "H30", "H15", "H24", "H8", "H22", "H16", "H28", "H28", "H7", "H7", "H28", "H23", "H3", "H8", "H26", "H24", "H18", "H25", "H11", "H17", "H23", "H3" ], "H29": [ "H7", "H19", "H2", "H24", "H10", "H12", "H32", "H16", "H30", "H9", "H19", "H23", "H18", "H2", "H9", "H10", "H8", "H21", "H21", "H21", "H25", "H27", "H26", "H16", "H33", "H16", "H30", "H13", "H25", "H23" ], "H16": [ "H19", "H11", "H20", "H22", "H32", "H4", "H6", "H21", "H22", "H11", "H21", "H18", "H8", "H33", "H32", "H28", "H2", "H1", "H23", "H25", "H12", "H19", "H25", "H25", "H1", "H33", "H5", "H25", "H26", "H14" ], "H30": [ "H1", "H22", "H22", "H15", "H8", "H26", "H24", "H4", "H31", "H15", "H16", "H12", "H1", "H32", "H23", "H32", "H11", "H16", "H28", "H24", "H26", "H12", "H20", "H4", "H33", "H7", "H25", "H24", "H17", "H10" ], "H17": [ "H3", "H24", "H26", "H29", "H7", "H30", "H10", "H23", "H9", "H20", "H2", "H13", "H6", "H13", "H6", "H27", "H24", "H19", "H30", "H32", "H24", "H1", "H24", "H10", "H33", "H16", "H6", "H12", "H13", "H24" ], "H31": [ "H18", "H18", "H20", "H18", "H24", "H17", "H11", "H8", "H10", "H24", "H29", "H21", "H13", "H24", "H4", "H22", "H10", "H3", "H1", "H27", "H27", "H26", "H14", "H26", "H3", "H26", "H27", "H19", "H12", "H1" ], "H18": [ "H30", "H31", "H5", "H13", "H33", "H3", "H24", "H3", "H24", "H21", "H28", "H28", "H9", "H9", "H1", "H24", "H7", "H5", "H28", "H15", "H12", "H25", "H29", "H3", "H28", "H1", "H6", "H25", "H14", "H27" ], "H32": [ "H25", "H1", "H22", "H5", "H19", "H7", "H30", "H16", "H7", "H24", "H20", "H16", "H6", "H17", "H1", "H19", "H18", "H19", "H19", "H8", "H24", "H24", "H9", "H2", "H18", "H7", "H28", "H21", "H31", "H30" ], "H19": [ "H24", "H23", "H18", "H18", "H14", "H2", "H26", "H18", "H8", "H24", "H9", "H33", "H23", "H24", "H17", "H18", "H32", "H3", "H17", "H16", "H2", "H31", "H13", "H1", "H24", "H22", "H16", "H21", "H24", "H10" ], "H33": [ "H20", "H24", "H5", "H11", "H31", "H24", "H3", "H31", "H2", "H22", "H13", "H5", "H5", "H6", "H6", "H27", "H28", "H17", "H15", "H10", "H12", "H15", "H5", "H22", "H17", "H3", "H13", "H11", "H5", "H5" ], "H20": [ "H23", "H5", "H17", "H29", "H30", "H12", "H6", "H29", "H16", "H9", "H2", "H32", "H26", "H15", "H24", "H15", "H1", "H22", "H15", "H32", "H1", "H4", "H15", "H22", "H17", "H7", "H18", "H15", "H7", "H16" ], "H6": [ "H7", "H8", "H7", "H8", "H13", "H2", "H25", "H16", "H11", "H32", "H15", "H23", "H25", "H22", "H18", "H16", "H30", "H26", "H12", "H17", "H26", "H18", "H8", "H3", "H18", "H22", "H17", "H30", "H9", "H21" ], "H5": [ "H19", "H26", "H30", "H13", "H19", "H27", "H1", "H19", "H3", "H28", "H31", "H32", "H32", "H7", "H23", "H29", "H33", "H3", "H33", "H19", "H13", "H21", "H26", "H3", "H10", "H30", "H19", "H7", "H8", "H27" ], "H7": [ "H6", "H28", "H4", "H20", "H2", "H32", "H24", "H15", "H30", "H11", "H31", "H1", "H15", "H6", "H23", "H15", "H1", "H30", "H3", "H9", "H12", "H21", "H9", "H26", "H20", "H15", "H2", "H5", "H29", "H11" ], "H10": [ "H20", "H25", "H14", "H28", "H28", "H21", "H22", "H7", "H8", "H15", "H2", "H22", "H5", "H27", "H12", "H18", "H8", "H26", "H31", "H27", "H30", "H28", "H1", "H26", "H2", "H16", "H8", "H6", "H24", "H12" ], "H9": [ "H24", "H28", "H23", "H12", "H4", "H20", "H18", "H5", "H30", "H11", "H29", "H13", "H7", "H7", "H13", "H7", "H8", "H2", "H23", "H20", "H13", "H19", "H13", "H7", "H28", "H20", "H29", "H31", "H7", "H26" ], "H14": [ "H8", "H32", "H1", "H9", "H18", "H18", "H20", "H5", "H32", "H12", "H3", "H20", "H5", "H20", "H26", "H29", "H30", "H3", "H10", "H17", "H5", "H13", "H24", "H30", "H20", "H30", "H10", "H18", "H10", "H24" ], "H15": [ "H20", "H7", "H3", "H31", "H7", "H32", "H33", "H33", "H5", "H23", "H12", "H10", "H30", "H25", "H19", "H32", "H8", "H26", "H30", "H33", "H10", "H16", "H16", "H11", "H9", "H19", "H12", "H20", "H31", "H13" ] }
         #self.graph_has_data = True
         
@@ -708,6 +756,7 @@ class NetworkEngine:
         self.graph_has_data = True
         
         self.graph_topology = pickle.load(open("service_provider_network.pickle", "rb"))
+
         #nx.draw(self.graph_topology, with_labels=True)
         #plt.show()
         self.create_components(self.graph_topology) #creates nodes and edges

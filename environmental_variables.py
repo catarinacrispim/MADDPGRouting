@@ -1,16 +1,16 @@
 NR_ACTIVE_CONNECTIONS = 10
 NUMBER_OF_PATHS = 3
 
-NR_EPOCHS = 2000     #epoch
-EPOCH_SIZE = 200    #episode
+NR_EPOCHS = 5     #epoch
+EPOCH_SIZE = 20    #episode
 
-NOTES = " only 3 edges removed in total"
+NOTES = ""
 
 GNN_MODULE = False
 
-#PATH_SIMULATION = "/home/student"
-PATH_SIMULATION = "/home/server2/Thesis"
-SIM_NR = "_"
+PATH_SIMULATION = "/home/student"
+#PATH_SIMULATION = "/home/server2/Thesis"
+SIM_NR = ""
 
 ### NETWORK TOPOLOGY TYPE ###
 TOPOLOGY_TYPE = "internet"; NUMBER_OF_HOSTS = 25; NUMBER_OF_AGENTS = 25; NR_MAX_LINKS = 11
@@ -23,17 +23,18 @@ STATE_SIZE = NR_MAX_LINKS + 1 + NR_ACTIVE_CONNECTIONS * 2 + 1
 
 ### TRAIN COMBINATIONS ###
 #1 
-CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
+#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "duelling_q_network"
 #2
-#CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
+CRITIC_DOMAIN = "central_critic"; NEURAL_NETWORK = "simple_q_network"
 #3
 #CRITIC_DOMAIN = "local_critic"; NEURAL_NETWORK = "duelling_q_network"
 #4
 #CRITIC_DOMAIN = "shortest"; NEURAL_NETWORK = "shortest"
 
-#EVALUATE = False; UPDATE_WEIGHTS = False
-EVALUATE = True; UPDATE_WEIGHTS = False
-#EVALUATE = True; UPDATE_WEIGHTS = True
+#EVALUATE = False; UPDATE_WEIGHTS = False; TRAIN = False
+#EVALUATE = True; UPDATE_WEIGHTS = False; TRAIN = False
+#EVALUATE = True; UPDATE_WEIGHTS = True; TRAIN = False
+EVALUATE = True; UPDATE_WEIGHTS = True; TRAIN = True #train after topology changes
 
 ### Modified Network In Evaluate  ###
 MODIFIED_NETWORK = "remove_edges"
