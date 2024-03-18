@@ -688,8 +688,9 @@ class NetworkEngine:
         self.create_components(self.graph_topology) #creates nodes and edges
         #self.communication_sequences = generate_traffic_sequence_arpanet(self)
         self.hosts = self.get_all_hosts()
-        for host in self.hosts:
-            self.bws[host] = random.randint(20, 50) #10-30
+        #for host in self.hosts:
+        #    self.bws[host] = random.randint(10, 45) #10-30
+        self.bws = {'H21': 38, 'H1': 39, 'H22': 24, 'H2': 11, 'H23': 39, 'H3': 28, 'H24': 42, 'H4': 34, 'H25': 24, 'H8': 13, 'H26': 41, 'H11': 31, 'H27': 24, 'H12': 12, 'H28': 17, 'H13': 15, 'H29': 42, 'H16': 17, 'H30': 38, 'H17': 45, 'H31': 11, 'H18': 43, 'H32': 28, 'H19': 35, 'H33': 32, 'H20': 28, 'H6': 29, 'H5': 34, 'H7': 22, 'H10': 13, 'H9': 35, 'H14': 39, 'H15': 45}
         self.calculate_paths()
 
         #print("\n hosts: ", self.hosts)
