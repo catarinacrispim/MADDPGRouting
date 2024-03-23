@@ -14,10 +14,12 @@ from environmental_variables import NEURAL_NETWORK, PATH_SIMULATION, GNN_MODULE,
 class Agent:
     def __init__(self, actor_dims, critic_dims, n_actions, n_agents, agent_idx, chkpt_dir,
                     alpha=0.01, beta=0.01, fc1=64, 
-                    fc2=64, fa1=64, fa2=64, gamma=0.95, tau=0.01):
+                    fc2=64, fa1=64, fa2=64, gamma=0.95, tau=0.0001):
         self.gamma = gamma
         self.tau = tau
         self.n_actions = n_actions
+        fa1 = fc1 #
+        fa2 = fc2 #
         #self.agent_name = 'agent_joint_training_improved_strategy%s' % agent_idx
         #self.agent_name = 'agent_joint_training_gcritic_updated_fixed_tm_15_02_%s' % agent_idx
         self.agent_name = 'agent_%s' %agent_idx
@@ -171,10 +173,15 @@ class ActorNetwork(nn.Module):
         self.to(self.device)
 
     def forward(self, state):
+        #print("input: ", state.shape)
+        #print("fc1: ", self.fc1(state).shape)
         x = F.relu(self.fc1(state))            #activation function
+        #print("relu: ", x.shape)
         #x = F.relu(self.fc2(x)) ##
         #x = self.fc2(x)
+        #print("pi: ", self.pi(x).shape)
         pi = T.softmax(self.pi(x), dim=1)      #hidden layer -> output
+        #print("output softmax: ", pi.shape)
 
         return pi
 

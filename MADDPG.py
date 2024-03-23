@@ -15,7 +15,7 @@ from Agent import Agent
 from MultiAgentReplayBuffer import MultiAgentReplayBuffer
 from NetworkEngine import NetworkEngine
 from NetworkEnv import NetworkEnv
-from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, TRAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, NUMBER_OF_PATHS
+from environmental_variables import STATE_SIZE, EPOCH_SIZE, NUMBER_OF_AGENTS, NR_EPOCHS, EVALUATE, CRITIC_DOMAIN, SIM_NR, TRAIN, NEURAL_NETWORK, MODIFIED_NETWORK, NOTES, TOPOLOGY_TYPE, UPDATE_WEIGHTS, PATH_SIMULATION, GNN_MODULE, NUMBER_OF_PATHS, CHECKPOINT, CHECKPOINT_FILE
 #, GRAPH_BATCH_SIZE
 
 
@@ -23,6 +23,7 @@ class MADDPG:
     def __init__(self, actor_dims, critic_dims, n_agents, n_actions,
                  scenario='simple', alpha=0.01, beta=0.01, fc1=64,
                  fc2=64, fa1=64, fa2=64, gamma=0.99, tau=0.001, chkpt_dir='tmp/maddpg/'):
+        #scenario='simple', alpha=0.01, beta=0.01, fc1=64,fc2=64, fa1=64, fa2=64, gamma=0.99, tau=0.001,:
         self.agents = []
         self.n_agents = n_agents
         self.n_actions = n_actions
@@ -149,7 +150,7 @@ if __name__ == '__main__':
 
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
-                           fa1=10, fa2=80, fc1=15, fc2=80,
+                           fa1=10, fa2=64, fc1=10, fc2=64,
                            alpha=0.001, beta=0.0001, tau=0.0001,
                            chkpt_dir='.\\tmp\\maddpg\\')
     #alfa 0.0001
@@ -213,6 +214,18 @@ if __name__ == '__main__':
     if (EVALUATE and NEURAL_NETWORK != "shortest") or (EVALUATE and TRAIN):
         maddpg_agents.load_checkpoint()
 
+    i_epoch = 0
+
+    if CHECKPOINT:
+        maddpg_agents.load_checkpoint()
+        check_file = np.loadtxt(CHECKPOINT_FILE, delimiter=',', dtype=float)[1,:]
+        for i in np.arange(0, len(check_file)):
+            if check_file[i] != 0:
+                y_axis_training = check_file[i]
+            else:
+                i_epoch = i
+                break
+
     packet_loss_evaluate = []
     packet_sent_evaluate = []
     experience_pck_lost = 0
@@ -233,7 +246,7 @@ if __name__ == '__main__':
             eng.add_edges(3)
 
 
-    for epoch in range(0, nr_epochs):
+    for epoch in range(i_epoch, nr_epochs):
         total_epoch_reward = []
         total_epoch_pck_loss = 0
         total_epoch_pck_sent = 0

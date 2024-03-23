@@ -626,9 +626,9 @@ class NetworkEngine:
         if mod == 1:
             nr_links_changed = 1
         elif mod == 2:
-            nr_links_changed = 1#2
+            nr_links_changed = 2
         elif mod == 3:
-            nr_links_changed = 1#3
+            nr_links_changed = 3
 
         edges = []
         change = []
