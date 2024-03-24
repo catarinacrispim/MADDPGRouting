@@ -150,10 +150,11 @@ if __name__ == '__main__':
 
 
     maddpg_agents = MADDPG(agent_dims, critic_dims, NUMBER_OF_AGENTS, n_action,
-                           fa1=10, fa2=64, fc1=10, fc2=64,
+                           fa1=10, fa2=64, fc1=15, fc2=64,
                            alpha=0.001, beta=0.0001, tau=0.0001,
                            chkpt_dir='.\\tmp\\maddpg\\')
     #alfa 0.0001
+    #fc1 10
 
     memory = MultiAgentReplayBuffer(REPLAY_MEMORY, critic_dims, agent_dims, n_action, NUMBER_OF_AGENTS, MEMORY_BATCH)
     
