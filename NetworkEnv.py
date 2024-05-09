@@ -45,6 +45,7 @@ class NetworkEnv(Env):
         for host in self.engine.get_all_hosts():
             reward = 0
             bw = self.engine.components[host].get_neighbors_bw()
+            #print("\n bw reward: ", bw)
             if bw > 75:
                 reward += 50
             elif bw > 50:
